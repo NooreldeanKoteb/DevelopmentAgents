@@ -1,0 +1,24 @@
+graph TB
+    subgraph "Resource Optimizations"
+        CPU[CPU Usage] --> |Batch Processing| BP[Batch Processor]
+        MEM[Memory Usage] --> |Caching Strategy| CS[Cache Manager]
+        API[API Calls] --> |Rate Limiting| RL[Rate Limiter]
+    end
+
+    subgraph "Agent Optimizations"
+        MA[Message Aggregator] --> |Bulk Processing| Agents
+        PP[Priority Processor] --> |Task Priority| Agents
+        CB[Circuit Breaker] --> |Failure Protection| Agents
+    end
+
+    subgraph "Knowledge Optimizations"
+        KS[Knowledge Store] --> |Semantic Search| VS[Vector Search]
+        KC[Knowledge Cache] --> |Quick Retrieval| Agents
+        KA[Knowledge Aggregator] --> |Combine Sources| KS
+    end
+
+    subgraph "System Optimizations"
+        LB[Load Balancer] --> |Agent Distribution| Agents
+        Q[Queue Manager] --> |Message Routing| MA
+        MON[Monitoring] --> |System Health| CB
+    end

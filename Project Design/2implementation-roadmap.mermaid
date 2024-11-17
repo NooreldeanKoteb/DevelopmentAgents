@@ -1,0 +1,33 @@
+graph TB
+    subgraph "Phase 1: Foundation"
+        B[Base Agent System] --> BA[Base Agent Class]
+        B --> C[Communication Protocol]
+        B --> M[Memory Management]
+        BA --> PM[Project Manager Agent]
+        BA --> KA[Knowledge Agent]
+    end
+    
+    subgraph "Phase 2: Core Agents"
+        PM --> CA[Coding Agent]
+        PM --> EA[Environment Agent]
+        KA --> |Context| CA
+        EA --> |Setup| CA
+    end
+    
+    subgraph "Phase 3: Support Agents"
+        CA --> TA[Testing Agent]
+        CA --> DA[Documentation Agent]
+        CA --> SA[Security Agent]
+    end
+
+    subgraph "Phase 4: Infrastructure"
+        EA --> ENV[Environment Setup]
+        EA --> DEP[Dependency Management]
+        EA --> VCS[Version Control]
+    end
+
+    subgraph "Phase 5: Integration"
+        ALL[All Agents] --> MON[Monitoring]
+        ALL --> LOG[Logging]
+        ALL --> ERR[Error Handling]
+    end

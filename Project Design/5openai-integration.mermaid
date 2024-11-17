@@ -1,0 +1,24 @@
+graph TB
+    subgraph "Agent OpenAI Interface"
+        AI[OpenAI Client] --> |Structured Request| FMT[Request Formatter]
+        FMT --> |JSON Request| API[OpenAI API]
+        API --> |JSON Response| PARSE[Response Parser]
+        PARSE --> |Validated Data| AGENT[Agent System]
+    end
+
+    subgraph "Knowledge Search System"
+        KA[Knowledge Agent] --> |Query| SE[Search Engine]
+        SE --> |Search Results| SP[Search Processor]
+        SP --> |Context| FMT
+        
+        subgraph "Search Enhancement"
+            SP --> |Extract| KDB[(Knowledge DB)]
+            KDB --> |Enrich| SE
+        end
+    end
+
+    subgraph "Response Schemas"
+        PARSE --> |Validate| VS[Schema Validator]
+        VS --> |Type Check| TC[Type Checker]
+        VS --> |Format| TF[Transform]
+    end

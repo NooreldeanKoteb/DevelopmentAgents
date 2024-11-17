@@ -1,0 +1,202 @@
+# Base OpenAI Response Structure
+base_response_schema:
+  type: object
+  required:
+    - success
+    - data
+    - metadata
+  properties:
+    success: boolean
+    data: object
+    metadata:
+      type: object
+      properties:
+        timestamp: string
+        model: string
+        tokens_used: integer
+        processing_time: number
+
+# Agent-Specific Schemas
+agent_schemas:
+  coding_agent:
+    request:
+      type: object
+      properties:
+        task_type:
+          enum: [generate, review, refactor, analyze, fix]
+        language: string
+        requirements: array
+        context: object
+        constraints: array
+    response:
+      type: object
+      properties:
+        code: string
+        explanation: string
+        suggestions: array
+        warnings: array
+        dependencies: array
+        test_cases: array
+
+  knowledge_agent:
+    request:
+      type: object
+      properties:
+        query_type:
+          enum: [search, analyze, synthesize, validate]
+        search_params:
+          type: object
+          properties:
+            query: string
+            depth: string
+            sources: array
+        context: object
+    response:
+      type: object
+      properties:
+        findings: array
+        sources: array
+        confidence: number
+        related_topics: array
+        suggested_queries: array
+
+  project_manager:
+    request:
+      type: object
+      properties:
+        action_type:
+          enum: [plan, estimate, allocate, review, prioritize]
+        project_context: object
+        constraints: object
+        resources: array
+    response:
+      type: object
+      properties:
+        tasks: array
+        timeline: object
+        resources_needed: array
+        risks: array
+        recommendations: array
+
+  environment_agent:
+    request:
+      type: object
+      properties:
+        setup_type:
+          enum: [initialize, update, validate, cleanup]
+        requirements: array
+        constraints: object
+    response:
+      type: object
+      properties:
+        commands: array
+        configurations: object
+        dependencies: array
+        validation_steps: array
+        warnings: array
+
+  testing_agent:
+    request:
+      type: object
+      properties:
+        test_type:
+          enum: [unit, integration, e2e, performance]
+        code: string
+        requirements: array
+    response:
+      type: object
+      properties:
+        test_cases: array
+        coverage: object
+        suggestions: array
+        fixtures: array
+        mocks: array
+
+# Example Prompts for JSON Responses
+prompt_templates:
+  coding_agent: |
+    You are a coding assistant that responds only in JSON format.
+    Given the following requirements:
+    {requirements}
+    
+    Respond with valid JSON matching this schema:
+    {schema}
+    
+    Include only the JSON response, no additional text.
+
+  knowledge_agent: |
+    You are a knowledge processing system that responds only in JSON format.
+    Search and analyze the following query:
+    {query}
+    
+    Respond with valid JSON matching this schema:
+    {schema}
+    
+    Include only the JSON response, no additional text.
+
+  project_manager: |
+    You are a project management system that responds only in JSON format.
+    Given the following project requirements:
+    {requirements}
+    
+    Respond with valid JSON matching this schema:
+    {schema}
+    
+    Include only the JSON response, no additional text.
+
+# Knowledge Agent Search Integration
+knowledge_search:
+  search_request:
+    type: object
+    properties:
+      query: string
+      search_type:
+        enum: [web, documentation, academic, code]
+      filters:
+        type: object
+        properties:
+          date_range: object
+          sources: array
+          languages: array
+      depth:
+        enum: [basic, detailed, comprehensive]
+  
+  search_response:
+    type: object
+    properties:
+      results:
+        type: array
+        items:
+          type: object
+          properties:
+            source: string
+            url: string
+            title: string
+            summary: string
+            relevance: number
+            confidence: number
+      metadata:
+        type: object
+        properties:
+          total_results: integer
+          processing_time: number
+          sources_checked: integer
+
+# Response Processing Pipeline
+processing_pipeline:
+  stages:
+    - name: validation
+      checks:
+        - schema_compliance
+        - data_types
+        - required_fields
+    - name: enrichment
+      processes:
+        - context_addition
+        - metadata_enhancement
+        - confidence_scoring
+    - name: transformation
+      operations:
+        - format_standardization
+        - data_structuring
+        - relationship_mapping

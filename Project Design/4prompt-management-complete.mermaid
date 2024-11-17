@@ -1,0 +1,80 @@
+graph TB
+    subgraph "Prompt Management"
+        PS[Prompt Store] --> |Load| PT[Prompt Templates]
+        PT --> |Customize| DP[Dynamic Prompts]
+        
+        subgraph "Version Control"
+            PS --> |Store| GIT[Git Repository]
+            GIT --> |Version| PSV[Prompt Versions]
+            PSV --> |Validate| PV[Version Control]
+        end
+        
+        subgraph "Caching Layer"
+            PS --> |Quick Access| RC[Redis Cache]
+            RC --> |Expire| TTL[Time-Based Cleanup]
+            RC --> |Update| SYNC[Cache Sync]
+        end
+        
+        subgraph "Prompt Categories"
+            direction LR
+            CODE[Code Generation]
+            SEARCH[Search Queries]
+            ANALYZE[Analysis]
+            ARCH[Architecture]
+            REVIEW[Code Review]
+            TEST[Testing]
+            DOC[Documentation]
+            SEC[Security]
+        end
+    end
+    
+    subgraph "AI Integration"
+        DP --> |Format| OAI[OpenAI Client]
+        OAI --> |Query| API[OpenAI API]
+        API --> |Response| Parser[Response Parser]
+        
+        subgraph "Rate Limiting"
+            OAI --> RL[Rate Limiter]
+            RL --> |Control| API
+            RL --> |Monitor| Usage[Usage Metrics]
+        end
+        
+        subgraph "Response Processing"
+            Parser --> |Extract| KE[Knowledge Extraction]
+            Parser --> |Validate| RV[Response Validation]
+            Parser --> |Format| RF[Response Formatting]
+        end
+    end
+    
+    subgraph "Knowledge Management"
+        KE --> |Store| VDB[(Vector Database)]
+        KE --> |Cache| RC
+        
+        subgraph "Knowledge Processing"
+            VDB --> |Index| SI[Semantic Index]
+            VDB --> |Cluster| TC[Topic Clustering]
+            VDB --> |Link| KG[Knowledge Graph]
+        end
+        
+        subgraph "Knowledge Access"
+            SI --> |Search| KS[Knowledge Search]
+            TC --> |Browse| KB[Knowledge Browse]
+            KG --> |Navigate| KN[Knowledge Navigation]
+        end
+    end
+    
+    subgraph "Search System"
+        Search[Search Request] --> |Format| SPT[Search Prompt]
+        SPT --> |Process| OAI
+        KS --> |Enhance| SPT
+        
+        subgraph "Search Enhancement"
+            KS --> |Context| SC[Search Context]
+            KS --> |History| SH[Search History]
+            KS --> |Related| SR[Related Queries]
+        end
+    end
+
+    style PS fill:#f9f,stroke:#333,stroke-width:2px
+    style OAI fill:#bbf,stroke:#333,stroke-width:2px
+    style VDB fill:#dfd,stroke:#333,stroke-width:2px

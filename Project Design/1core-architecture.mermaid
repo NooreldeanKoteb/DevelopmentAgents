@@ -1,0 +1,33 @@
+graph TB
+    User[User/Client] --> PM[Project Manager Agent]
+    
+    subgraph "Core Agents"
+        PM --> KA[Knowledge Agent]
+        PM --> CA[Coding Agent]
+        PM --> EA[Environment Agent]
+        PM --> TA[Testing Agent]
+        PM --> DA[Documentation Agent]
+        PM --> SA[Security Agent]
+    end
+
+    subgraph "OpenAI Integration"
+        KA --> |Queries| OAI[OpenAI API]
+        OAI --> |Results| KA
+    end
+
+    subgraph "Knowledge System"
+        KA --> |Store| VS[(Vector Store)]
+        KA --> |Cache| Redis[(Redis Cache)]
+        VS --> |Retrieve| Agents
+    end
+
+    subgraph "Project Execution"
+        CA --> |Code| Git[Version Control]
+        EA --> |Setup| Env[Environment]
+        TA --> |Results| PM
+        DA --> |Docs| Git
+    end
+
+    classDef primary fill:#f9f,stroke:#333,stroke-width:2px
+    classDef secondary fill:#bbf,stroke:#333,stroke-width:1px
+    classDef storage fill:#dfd,stroke:#333,stroke-width:1px
