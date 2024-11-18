@@ -1,16 +1,21 @@
 from typing import Dict, Any, Optional
 import asyncio
 import json
-import openai
 from openai import AsyncOpenAI
 from datetime import datetime
 from pydantic import ValidationError
+
 from core.config import get_settings, monitor_operation
 from .schemas import OpenAIRequest, OpenAIResponse
 from .cache import ResponseCache
 from .rate_limiter import RateLimiter
-from .errors import OpenAIError
-from uuid import uuid4
+from .usage import TokenUsageTracker
+from .errors import (
+    OpenAIError,
+    RateLimitError,
+    ResponseValidationError,
+    TokenLimitError
+)
 
 class OpenAIClient:
     """Handles all OpenAI API communications with caching and rate limiting."""
@@ -20,6 +25,7 @@ class OpenAIClient:
         self.client = AsyncOpenAI(api_key=self.settings.OPENAI_API_KEY)
         self.cache = ResponseCache()
         self.rate_limiter = RateLimiter()
+        self.usage_tracker = TokenUsageTracker()
         self.total_tokens = 0
         self.total_cost = 0.0
 
