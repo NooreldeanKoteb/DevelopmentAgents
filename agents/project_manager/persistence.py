@@ -1,10 +1,13 @@
 from typing import Dict, Any, Optional, List
 import json
 from datetime import datetime
+from contextlib import asynccontextmanager
+
 import redis.asyncio as redis
-from pydantic import BaseModel
+from redis.exceptions import RedisError
 
 from agents.project_manager.enums import Priority
+from agents.project_manager.models import TaskData, ResourceData
 
 class PersistenceManager:
     def __init__(self, redis_url: str = "redis://localhost:6379") -> None:

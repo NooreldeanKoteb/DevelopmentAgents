@@ -1,5 +1,6 @@
 from typing import Dict, Type, Optional
 from .base import BaseSchema
+from .version import SchemaVersion
 
 class SchemaRegistry:
     """Central registry for schema management."""
@@ -31,5 +32,11 @@ class SchemaRegistry:
         version: SchemaVersion
     ) -> bool:
         """Validate schema compatibility with a specific version."""
-        # Add compatibility checking logic here
-        return True 
+        current_version = getattr(schema, 'version', None)
+        if not current_version:
+            return False
+            
+        # Only allow backward compatibility within same major version
+        return (current_version.major == version.major and 
+                current_version.minor >= version.minor)
+    

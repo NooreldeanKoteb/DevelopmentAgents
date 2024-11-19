@@ -4,6 +4,7 @@ from datetime import datetime
 
 from agents.base.base_agent import BaseAgent
 from agents.base.message import Message
+from agents.project_manager.models import TaskData, ResourceData
 from agents.project_manager.task_manager import TaskManager
 from agents.project_manager.planner import ProjectPlanner
 from agents.project_manager.resource_manager import ResourceManager

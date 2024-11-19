@@ -1,147 +1,107 @@
-from typing import List, Dict, Any, Set
+from typing import List, Dict, Any
 from datetime import datetime, timedelta
-from dataclasses import dataclass
-from collections import defaultdict
+
 import networkx as nx
 
-@dataclass
-class PlanningMetrics:
-    total_duration: float
-    resource_utilization: float
-    critical_path_length: int
-    risk_score: float
+from agents.project_manager.models import TaskData
 
 class ProjectPlanner:
     def __init__(self) -> None:
-        self.graph = nx.DiGraph()
-        self.metrics = defaultdict(float)
+        self.current_timeline: Dict[str, Any] = {}
 
     async def generate_timeline(self, tasks: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Generate an optimized project timeline using network analysis."""
-        self._build_dependency_graph(tasks)
-        
+        """Generate a project timeline based on tasks."""
         timeline = {
             "start_date": datetime.utcnow(),
             "end_date": None,
             "milestones": [],
             "critical_path": [],
-            "phases": [],
-            "risk_factors": [],
-            "metrics": {}
+            "phases": []
         }
 
-        # Calculate critical path using network analysis
-        critical_path = self._calculate_critical_path_network()
-        timeline["critical_path"] = critical_path
+        if not tasks:
+            return timeline
 
-        # Generate optimized phases using resource constraints
-        phases = self._generate_optimized_phases(tasks)
+        # Create a directed graph for task dependencies
+        graph = nx.DiGraph()
+        for task in tasks:
+            graph.add_node(task["id"], **task)
+            for dep in task.get("dependencies", []):
+                graph.add_edge(dep, task["id"])
+
+        # Calculate critical path using network analysis
+        try:
+            critical_path = nx.dag_longest_path(graph, weight="estimated_duration")
+            timeline["critical_path"] = [graph.nodes[task_id] for task_id in critical_path]
+        except nx.NetworkXError:
+            timeline["critical_path"] = []
+
+        # Sort tasks by dependencies
+        sorted_tasks = list(nx.topological_sort(graph))
+        sorted_task_data = [graph.nodes[task_id] for task_id in sorted_tasks]
+        
+        # Calculate phase distribution
+        phases = self._distribute_into_phases(sorted_task_data)
         timeline["phases"] = phases
 
-        # Calculate end date using PERT estimation
-        end_date = self._calculate_pert_completion_date(tasks)
-        timeline["end_date"] = end_date
+        # Generate milestones
+        timeline["milestones"] = self._generate_milestones(phases)
 
-        # Generate risk-aware milestones
-        timeline["milestones"] = self._generate_risk_aware_milestones(phases)
-        
-        # Calculate and store metrics
-        timeline["metrics"] = self._calculate_planning_metrics()
+        # Calculate end date based on critical path
+        if timeline["critical_path"]:
+            total_duration = sum(task["estimated_duration"] for task in timeline["critical_path"])
+            timeline["end_date"] = timeline["start_date"] + timedelta(hours=total_duration)
 
         return timeline
 
-    def _build_dependency_graph(self, tasks: List[Dict[str, Any]]) -> None:
-        """Build a directed graph of task dependencies."""
-        self.graph.clear()
-        for task in tasks:
-            self.graph.add_node(task["id"], **task)
-            for dep in task.get("dependencies", []):
-                self.graph.add_edge(dep, task["id"])
-
-    def _calculate_critical_path_network(self) -> List[Dict[str, Any]]:
-        """Calculate critical path using network analysis."""
-        try:
-            critical_path = nx.dag_longest_path(self.graph, weight="estimated_duration")
-            return [self.graph.nodes[task_id] for task_id in critical_path]
-        except nx.NetworkXError:
-            return []
-
-    def _generate_optimized_phases(self, tasks: List[Dict[str, Any]]) -> List[List[Dict[str, Any]]]:
-        """Generate optimized phases using resource leveling."""
+    def _distribute_into_phases(self, tasks: List[Dict[str, Any]]) -> List[List[Dict[str, Any]]]:
+        """Distribute tasks into phases based on dependencies and resources."""
         phases = []
-        remaining_tasks = tasks.copy()
+        current_phase = []
         
-        while remaining_tasks:
-            phase_tasks = []
-            resource_usage = defaultdict(float)
+        for task in tasks:
+            if len(current_phase) >= 5:  # arbitrary limit for demonstration
+                phases.append(current_phase)
+                current_phase = []
+            current_phase.append(task)
             
-            for task in remaining_tasks[:]:
-                if self._can_add_to_phase(task, resource_usage):
-                    phase_tasks.append(task)
-                    remaining_tasks.remove(task)
-                    self._update_resource_usage(task, resource_usage)
-                    
-            if phase_tasks:
-                phases.append(phase_tasks)
-                
+        if current_phase:
+            phases.append(current_phase)
+            
         return phases
 
-    def _calculate_pert_completion_date(self, tasks: List[Dict[str, Any]]) -> datetime:
-        """Calculate completion date using PERT estimation."""
-        start_date = datetime.utcnow()
-        
-        # PERT = (Optimistic + 4x Most Likely + Pessimistic) / 6
-        total_duration = sum(
-            (task.get("optimistic_duration", task["estimated_duration"]) + 
-             4 * task["estimated_duration"] + 
-             task.get("pessimistic_duration", task["estimated_duration"] * 1.5)) / 6
-            for task in tasks
-        )
-        
-        return start_date + timedelta(hours=total_duration)
-
-    def _calculate_planning_metrics(self) -> PlanningMetrics:
-        """Calculate planning metrics."""
-        return PlanningMetrics(
-            total_duration=self._calculate_total_duration(),
-            resource_utilization=self._calculate_resource_utilization(),
-            critical_path_length=len(self._calculate_critical_path_network()),
-            risk_score=self._calculate_risk_score()
-        )
-
-    def _can_add_to_phase(self, task: Dict[str, Any], resource_usage: Dict[str, float]) -> bool:
-        """Check if a task can be added to a phase."""
-        return sum(resource_usage.values()) + task["estimated_duration"] <= 8
-
-    def _update_resource_usage(self, task: Dict[str, Any], resource_usage: Dict[str, float]) -> None:
-        """Update resource usage for a task."""
-        for resource in task["resources"]:
-            resource_usage[resource] += task["estimated_duration"]
-
-    def _calculate_total_duration(self) -> float:
-        """Calculate total duration of the project."""
-        return sum(task["estimated_duration"] for task in self._calculate_critical_path_network())
-
-    def _calculate_resource_utilization(self) -> float:
-        """Calculate resource utilization of the project."""
-        total_resources = sum(self.graph.nodes[task_id]["resources"] for task_id in self.graph.nodes)
-        return sum(self.metrics.values()) / total_resources
-
-    def _calculate_risk_score(self) -> float:
-        """Calculate risk score of the project."""
-        return sum(self.metrics.values()) / len(self.graph.nodes)
-
-    def _generate_risk_aware_milestones(self, phases: List[List[Dict[str, Any]]]) -> List[Dict[str, Any]]:
-        """Generate risk-aware milestones based on phases."""
+    def _generate_milestones(self, phases: List[List[Dict[str, Any]]]) -> List[Dict[str, Any]]:
+        """Generate project milestones based on phases."""
         milestones = []
         current_date = datetime.utcnow()
         
         for i, phase in enumerate(phases):
             milestone = {
                 "name": f"Phase {i + 1} Complete",
-                "date": current_date + timedelta(days=i * 14),  # arbitrary spacing
+                "date": current_date + timedelta(hours=i * 4),  # 4-hour phases
                 "deliverables": [task["name"] for task in phase]
             }
             milestones.append(milestone)
             
-        return milestones 
+        return milestones
+
+    def _calculate_phase_duration(self, phase: List[Dict[str, Any]]) -> float:
+        """Calculate the duration of a phase based on parallel execution."""
+        if not phase:
+            return 0.0
+            
+        # Create a small graph for the phase
+        graph = nx.DiGraph()
+        for task in phase:
+            graph.add_node(task["id"], duration=task["estimated_duration"])
+            for dep in task.get("dependencies", []):
+                if any(t["id"] == dep for t in phase):  # only consider in-phase dependencies
+                    graph.add_edge(dep, task["id"])
+                    
+        # Find the longest path in this phase
+        try:
+            path_length = nx.dag_longest_path_length(graph, weight="duration")
+            return path_length
+        except (nx.NetworkXError, nx.NetworkXNoPath):
+            # If no dependencies, return max duration of any task
+            return max(task["estimated_duration"] for task in phase)
