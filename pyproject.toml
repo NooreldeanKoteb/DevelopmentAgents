@@ -42,3 +42,8 @@ addopts = "-v --strict-markers"
 markers = [
     "asyncio: mark test as async (pytest-asyncio)",
 ]
+
+[tool.poetry.dev-dependencies]
+pytest = "^7.0.0"
+pytest-cov = "^4.0.0"
+pytest-asyncio = "^0.23.0"

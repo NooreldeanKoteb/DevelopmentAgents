@@ -2,13 +2,13 @@ import pytest
 import asyncio
 from datetime import timedelta
 import json
-from agents.base import AgentMemory, MemoryError
+from agents.base import Memory, MemoryError
 
 
 @pytest.fixture
 async def memory():
     """Provide a memory instance."""
-    memory = AgentMemory("test-agent")
+    memory = Memory("test-agent")
     yield memory
     await memory.clear()
 

@@ -1,12 +1,20 @@
 from pydantic_settings import BaseSettings
 from typing import Optional
+from enum import Enum
+from pydantic import BaseModel
+
+class Environment(str, Enum):
+    """Application environment."""
+    DEVELOPMENT = "development"
+    STAGING = "staging"
+    PRODUCTION = "production"
 
 class Settings(BaseSettings):
     """Application settings with environment variable support."""
     
     # Environment
-    ENVIRONMENT: str = "development"
-    DEBUG: bool = False
+    ENVIRONMENT: Environment = Environment.DEVELOPMENT
+    DEBUG: bool = True
     
     # OpenAI
     OPENAI_API_KEY: str

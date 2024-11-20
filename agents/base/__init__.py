@@ -1,7 +1,14 @@
-from .base_agent import BaseAgent, AgentError
-from .memory import Memory, MemoryError
-from .message import Message, MessageError
-from .context import Context, ContextError
+from .base_agent import BaseAgent
+from .memory import Memory
+from .message import Message
+from .context import Context
+from .errors import (
+    AgentError,
+    MemoryError,
+    MessageError,
+    ContextError,
+    TaskError
+)
 
 __all__ = [
     'BaseAgent',
@@ -11,5 +18,6 @@ __all__ = [
     'Message',
     'MessageError',
     'Context',
-    'ContextError'
+    'ContextError',
+    'TaskError'
 ]
