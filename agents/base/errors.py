@@ -1,19 +1,15 @@
 class AgentError(Exception):
-    """Base exception for agent errors."""
+    """Base exception for agent-related errors."""
     pass
 
-class MemoryError(AgentError):
-    """Exception for memory-related errors."""
+class MemoryError(Exception):
+    """Base exception for memory-related errors."""
     pass
 
-class ContextError(AgentError):
-    """Exception for context-related errors."""
+class MessageError(Exception):
+    """Base exception for message-related errors."""
     pass
 
-class MessageError(AgentError):
-    """Exception for message processing errors."""
-    pass
-
-class TaskError(AgentError):
-    """Exception for task execution errors."""
+class ContextError(Exception):
+    """Base exception for context-related errors."""
     pass 

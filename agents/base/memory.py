@@ -1,45 +1,56 @@
-from typing import Any, Optional, Dict, List
+from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
 import json
-from redis.asyncio import Redis
-from core.config import get_settings
+from redis.asyncio import Redis, ConnectionPool
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator
+from .errors import MemoryError
 
-class AgentMemory:
-    """Manages agent memory storage and retrieval."""
+class Memory:
+    """Agent memory management using Redis."""
     
-    def __init__(self, agent_id: str):
+    def __init__(self, agent_id: str, redis_url: str = "redis://localhost:6379/0"):
         self.agent_id = agent_id
-        self.settings = get_settings()
-        self.redis = Redis.from_url(
-            self.settings.REDIS_URL,
+        self.pool = ConnectionPool.from_url(
+            redis_url,
             decode_responses=True
         )
-        self.ttl = timedelta(days=7)
         
-    async def store(
-        self,
-        key: str,
-        value: Any,
-        ttl: Optional[timedelta] = None
-    ) -> None:
-        """Store data in memory."""
-        memory_key = f"agent:{self.agent_id}:memory:{key}"
+    @asynccontextmanager
+    async def get_connection(self) -> AsyncGenerator[Redis, None]:
+        """Get Redis connection from pool."""
+        conn = Redis(connection_pool=self.pool)
         try:
-            serialized = json.dumps(value)
-            await self.redis.setex(
-                memory_key,
-                ttl or self.ttl,
-                serialized
-            )
+            yield conn
+        finally:
+            await conn.close()
+            
+    async def store(self, key: str, value: Any, ttl: Optional[timedelta] = None) -> None:
+        """Store data in memory."""
+        try:
+            memory_key = f"memory:{self.agent_id}:{key}"
+            data = json.dumps(value)
+            
+            async with self.get_connection() as redis:
+                if ttl:
+                    await redis.setex(memory_key, int(ttl.total_seconds()), data)
+                else:
+                    await redis.set(memory_key, data)
+                    
         except Exception as e:
             raise MemoryError(f"Failed to store memory: {str(e)}")
             
     async def retrieve(self, key: str) -> Optional[Any]:
         """Retrieve data from memory."""
-        memory_key = f"agent:{self.agent_id}:memory:{key}"
         try:
-            data = await self.redis.get(memory_key)
-            return json.loads(data) if data else None
+            memory_key = f"memory:{self.agent_id}:{key}"
+            
+            async with self.get_connection() as redis:
+                data = await redis.get(memory_key)
+                if data:
+                    return json.loads(data)
+                return None
+                
         except Exception as e:
             raise MemoryError(f"Failed to retrieve memory: {str(e)}")
             

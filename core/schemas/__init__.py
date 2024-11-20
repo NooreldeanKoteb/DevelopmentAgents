@@ -1,7 +1,7 @@
 from .base import BaseSchema
 from .tasks import TaskSchema, TaskStatus, TaskPriority, BusinessImpact
 from .agents import AgentSchema, AgentStatus, AgentType
-from .resources import ResourceSchema, ResourceStatus
+from .resources import ResourceSchema, ResourceStatus, ResourceType
 from .projects import ProjectSchema, ProjectStatus, ProjectPhase
 from .messages import (
     MessageSchema, MessageType, MessagePriority, 
@@ -26,6 +26,7 @@ __all__ = [
     # Resource schemas
     'ResourceSchema',
     'ResourceStatus',
+    'ResourceType',
     
     # Project schemas
     'ProjectSchema',

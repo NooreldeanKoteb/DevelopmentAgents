@@ -1,52 +1,39 @@
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional
 from datetime import datetime
-from collections import deque
 from core.messaging import Message
+from .errors import ContextError
 
-class AgentContext:
-    """Manages agent context and conversation history."""
+class Context:
+    """Maintains agent context and state."""
     
-    def __init__(self, max_history: int = 100):
-        self.max_history = max_history
-        self.history: deque = deque(maxlen=max_history)
-        self.variables: Dict[str, Any] = {}
-        self.last_update = datetime.now()
+    def __init__(self):
+        self.state: Dict[str, Any] = {}
+        self.last_message: Optional[Message] = None
+        self.last_updated = datetime.utcnow()
         
     def update(self, message: Message) -> None:
         """Update context with new message."""
-        self.history.append({
-            "message": message,
-            "timestamp": datetime.now()
-        })
-        self.last_update = datetime.now()
-        
-    def get_history(
-        self,
-        limit: Optional[int] = None,
-        topic: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
-        """Get conversation history."""
-        history = list(self.history)
-        if topic:
-            history = [
-                h for h in history 
-                if h["message"].topic == topic
-            ]
-        if limit:
-            history = history[-limit:]
-        return history
-        
-    def set_variable(self, key: str, value: Any) -> None:
-        """Set context variable."""
-        self.variables[key] = value
-        self.last_update = datetime.now()
-        
-    def get_variable(self, key: str) -> Optional[Any]:
-        """Get context variable."""
-        return self.variables.get(key)
+        try:
+            self.last_message = message
+            self.last_updated = datetime.utcnow()
+            
+            # Update state based on message content
+            if message.content:
+                self.state.update(message.content)
+                
+        except Exception as e:
+            raise ContextError(f"Failed to update context: {str(e)}")
+            
+    def get_state(self) -> Dict[str, Any]:
+        """Get current context state."""
+        return {
+            "state": self.state,
+            "last_message": self.last_message.model_dump() if self.last_message else None,
+            "last_updated": self.last_updated.isoformat()
+        }
         
     def clear(self) -> None:
-        """Clear context."""
-        self.history.clear()
-        self.variables.clear()
-        self.last_update = datetime.now() 
+        """Clear context state."""
+        self.state = {}
+        self.last_message = None
+        self.last_updated = datetime.utcnow() 
