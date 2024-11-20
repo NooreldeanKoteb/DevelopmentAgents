@@ -1,5 +1,5 @@
 from agents.base.errors import AgentError
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 class ProjectManagerError(AgentError):
     """Base exception for project manager related errors."""
@@ -95,4 +95,14 @@ class TaskNotFoundError(TaskError):
     def __init__(self, task_id: str, project_id: str):
         self.task_id = task_id
         self.project_id = project_id
-        super().__init__(f"Task '{task_id}' not found in project '{project_id}'") 
+        super().__init__(f"Task '{task_id}' not found in project '{project_id}'")
+
+class ResourceNotFoundError(ResourceError):
+    """Exception for when a resource cannot be found."""
+    def __init__(self, resource_id: str, project_id: Optional[str] = None):
+        self.resource_id = resource_id
+        self.project_id = project_id
+        message = f"Resource '{resource_id}' not found"
+        if project_id:
+            message += f" in project '{project_id}'"
+        super().__init__(message) 

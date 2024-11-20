@@ -11,10 +11,22 @@ class MessageBroker:
     def __init__(self):
         self.queues: Dict[str, MessageQueue] = {}
         self.subscribers: Dict[str, List[Callable[[Message], Awaitable[None]]]] = {}
+        self.error_handlers = set()
+        self._closed = False
         
+    async def close(self):
+        """Cleanup broker resources."""
+        self._closed = True
+        # Clear all subscriptions
+        self.subscribers.clear()
+        self.error_handlers.clear()
+    
     @monitor_operation(agent_type="broker", operation="publish")
     async def publish(self, message: Message) -> None:
         """Publish a message to all subscribers of the topic."""
+        if self._closed:
+            raise RuntimeError("Broker is closed")
+            
         topic = message.topic
         
         if topic not in self.queues:
@@ -59,4 +71,12 @@ class MessageBroker:
         if topic not in self.queues:
             return None
         return await self.queues[topic].get()
+    
+    async def _handle_error(self, error: Exception):
+        """Handle an error."""
+        for handler in self.error_handlers:
+            try:
+                await handler(error)
+            except Exception as e:
+                await self._handle_error(e)
     
