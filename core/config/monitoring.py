@@ -1,59 +1,48 @@
-from prometheus_client import Counter, Histogram, start_http_server
-from functools import wraps
+import functools
 import time
-from .settings import get_settings
+from typing import Callable, Any
+from prometheus_client import Counter, Histogram
 
 # Define metrics
 REQUEST_COUNT = Counter(
-    'request_total',
-    'Total request count',
-    ['method', 'endpoint', 'status']
+    'agent_requests_total',
+    'Total requests by agent and operation type',
+    ['agent_type', 'operation']
 )
 
-REQUEST_LATENCY = Histogram(
-    'request_latency_seconds',
-    'Request latency in seconds',
-    ['method', 'endpoint']
+LATENCY = Histogram(
+    'agent_operation_duration_seconds',
+    'Operation duration in seconds',
+    ['agent_type', 'operation']
 )
 
-AGENT_OPERATIONS = Counter(
-    'agent_operations_total',
-    'Total agent operations',
-    ['agent_type', 'operation', 'status']
+ERROR_COUNT = Counter(
+    'agent_errors_total',
+    'Total errors by agent and error type',
+    ['agent_type', 'error_type']
 )
 
-def initialize_monitoring():
-    """Start the monitoring HTTP server."""
-    settings = get_settings()
-    if settings.ENABLE_METRICS:
-        start_http_server(settings.METRICS_PORT)
-
-def monitor_operation(agent_type: str, operation: str):
+def monitor_operation(agent_type: str, operation: str) -> Callable:
     """Decorator to monitor agent operations."""
-    def decorator(func):
-        @wraps(func)
-        async def wrapper(*args, **kwargs):
+    def decorator(func: Callable) -> Callable:
+        @functools.wraps(func)
+        async def wrapper(*args, **kwargs) -> Any:
+            REQUEST_COUNT.labels(agent_type=agent_type, operation=operation).inc()
+            
             start_time = time.time()
             try:
                 result = await func(*args, **kwargs)
-                AGENT_OPERATIONS.labels(
+                LATENCY.labels(
                     agent_type=agent_type,
-                    operation=operation,
-                    status="success"
-                ).inc()
+                    operation=operation
+                ).observe(time.time() - start_time)
                 return result
             except Exception as e:
-                AGENT_OPERATIONS.labels(
+                ERROR_COUNT.labels(
                     agent_type=agent_type,
-                    operation=operation,
-                    status="error"
+                    error_type=type(e).__name__
                 ).inc()
-                raise e
-            finally:
-                duration = time.time() - start_time
-                REQUEST_LATENCY.labels(
-                    method=agent_type,
-                    endpoint=operation
-                ).observe(duration)
+                raise
+                
         return wrapper
-    return decorator 
+    return decorator

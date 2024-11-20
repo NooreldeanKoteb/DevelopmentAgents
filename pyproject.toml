@@ -2,8 +2,10 @@
 name = "autonomous-ai-dev"
 version = "0.1.0"
 description = "Autonomous AI Development System"
-authors = ["AI Team"]
-readme = "README.md"
+authors = ["Your Name <your.email@example.com>"]
+packages = [
+    { include = "agents" }
+]
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -22,6 +24,21 @@ redis = "^5.2.0"
 networkx = "^3.4.2"
 
 
+[tool.poetry.group.dev.dependencies]
+pytest-asyncio = "^0.24.0"
+pytest-cov = "^6.0.0"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+addopts = "-v --strict-markers"
+markers = [
+    "asyncio: mark test as async (pytest-asyncio)",
+]

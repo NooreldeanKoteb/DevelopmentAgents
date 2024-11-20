@@ -4,30 +4,28 @@ from agents.project_manager.enums import ActionType
 from agents.base.message import Message
 
 class ActionAnalyzer:
-    def __init__(self):
-        self.patterns = {
-            ActionType.ERROR_HANDLING: r"error|failed|exception|crash|bug",
-            ActionType.TASK_CREATION: r"create|new|add|start|initiate",
-            ActionType.TASK_UPDATE: r"update|modify|change|edit|revise",
-            ActionType.RESOURCE_ALLOCATION: r"assign|allocate|resource|worker|agent",
-            ActionType.TIMELINE_UPDATE: r"schedule|timeline|deadline|date|delay",
-            ActionType.PRIORITY_ADJUSTMENT: r"priority|urgent|important|critical",
-            ActionType.DEPENDENCY_UPDATE: r"depends|dependency|blocking|blocked|prerequisite",
-            ActionType.STATUS_CHANGE: r"status|complete|finish|done|progress"
+    async def determine_action_type(self, message: Message) -> str:
+        """Determine the type of action from a message."""
+        # First check metadata override
+        if "action_type" in message.metadata:
+            return message.metadata["action_type"]
+            
+        # If message has an explicit type that matches our patterns, use it
+        if message.type and message.type != "default":
+            return message.type
+            
+        # Otherwise analyze content
+        patterns = {
+            "task_creation": ["create", "new task"],
+            "task_update": ["update", "status"],
+            "resource_allocation": ["allocate", "resource"],
+            "error_handling": ["error", "failed"],
+            "project_update": [".*"]  # Default catch-all
         }
-
-    def determine_action_type(self, message: Message) -> str:
-        """Analyze message content to determine action type."""
-        content = message.content.lower()
-        metadata = message.metadata or {}
         
-        # Check metadata first
-        if "action_type" in metadata:
-            return metadata["action_type"]
-        
-        # Check patterns
-        for action_type, pattern in self.patterns.items():
-            if re.search(pattern, content):
-                return action_type.value
+        content = str(message.content).lower()
+        for action_type, keywords in patterns.items():
+            if any(keyword in content for keyword in keywords):
+                return action_type
                 
-        return ActionType.PROJECT_UPDATE.value 
+        return "project_update"

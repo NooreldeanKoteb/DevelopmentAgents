@@ -1,7 +1,47 @@
+from typing import Dict, Any, List
 from datetime import datetime
-from typing import Dict, Any
-from agents.project_manager.enums import Priority
+from core.schemas import TaskPriority
 
+def calculate_task_priority(task: Dict[str, Any]) -> str:
+    """Calculate task priority based on various factors."""
+    score = 0
+    
+    # Duration score (0-3 points)
+    duration = task.get("estimated_duration", 0)
+    if duration >= 5.0:
+        score += 3
+    elif duration >= 3.0:
+        score += 2
+    elif duration > 0:
+        score += 1
+        
+    # Dependencies score (0-3 points)
+    dependencies = task.get("dependencies", [])
+    if len(dependencies) >= 3:
+        score += 3
+    elif len(dependencies) >= 1:
+        score += 2
+        
+    # Business impact score (0-3 points)
+    impact = task.get("business_impact", "low")
+    if impact == "high":
+        score += 3
+    elif impact == "medium":
+        score += 2
+    elif impact == "low":
+        score += 1
+        
+    # Status score (0-2 points)
+    if task.get("status") == "blocked":
+        score += 2
+        
+    # Convert score to priority (max score: 11)
+    if score >= 10:
+        return TaskPriority.HIGH.value
+    elif score >= 6:
+        return TaskPriority.MEDIUM.value
+    else:
+        return TaskPriority.LOW.value 
 class PriorityCalculator:
     @staticmethod
     def calculate_deadline_score(minutes: int) -> float:
@@ -52,13 +92,13 @@ class PriorityCalculator:
     @staticmethod
     def score_to_priority(score: float) -> str:
         """Convert numerical score to priority level."""
-        if score >= 80:
-            return Priority.CRITICAL.value
-        elif score >= 60:
-            return Priority.HIGH.value
+        if score >= 95:
+            return TaskPriority.CRITICAL.value
+        elif score >= 70:
+            return TaskPriority.HIGH.value
         elif score >= 40:
-            return Priority.MEDIUM.value
-        return Priority.LOW.value
+            return TaskPriority.MEDIUM.value
+        return TaskPriority.LOW.value
 
     def calculate_task_priority(self, task: Dict[str, Any]) -> str:
         """Calculate overall task priority."""

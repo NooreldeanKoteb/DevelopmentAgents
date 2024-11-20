@@ -1,18 +1,26 @@
-from enum import Enum
+from enum import Enum, auto
 
-class ActionType(Enum):
-    PROJECT_UPDATE = "project_update"
-    RESOURCE_ALLOCATION = "resource_allocation"
-    TASK_CREATION = "task_creation"
-    TASK_UPDATE = "task_update"
+class TaskStatus(str, Enum):
+    PENDING = "pending"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    FAILED = "failed"
     PRIORITY_ADJUSTMENT = "priority_adjustment"
-    TIMELINE_UPDATE = "timeline_update"
-    ERROR_HANDLING = "error_handling"
-    DEPENDENCY_UPDATE = "dependency_update"
-    STATUS_CHANGE = "status_change"
 
 class Priority(Enum):
-    CRITICAL = "critical"  # Score >= 80
-    HIGH = "high"         # Score >= 60
-    MEDIUM = "medium"     # Score >= 40
-    LOW = "low"          # Score < 40 
+    CRITICAL = "critical"
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+
+class BusinessImpact(str, Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+
+class ActionType(str, Enum):
+    TASK_CREATION = "task_creation"
+    TASK_UPDATE = "task_update"
+    RESOURCE_ALLOCATION = "resource_allocation"
+    ERROR_HANDLING = "error_handling"
+    PROJECT_UPDATE = "project_update"

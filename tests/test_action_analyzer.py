@@ -1,0 +1,23 @@
+import pytest
+from agents.project_manager.action_analyzer import ActionAnalyzer
+from agents.project_manager.enums import ActionType
+from agents.base.message import Message
+
+@pytest.mark.asyncio
+async def test_determine_action_type():
+    """Test action type determination."""
+    analyzer = ActionAnalyzer()
+    
+    create_message = Message(
+        type="task_creation",
+        content="create new task",
+        metadata={}
+    )
+    assert await analyzer.determine_action_type(create_message) == "task_creation"
+    
+    update_message = Message(
+        type="task_update",
+        content="update task status",
+        metadata={}
+    )
+    assert await analyzer.determine_action_type(update_message) == "task_update"

@@ -1,107 +1,100 @@
-from typing import List, Dict, Any
+from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
+import asyncio
+import yaml
+from pathlib import Path
 
-import networkx as nx
-
-from agents.project_manager.models import TaskData
+from core.openai import OpenAIClient
+from core.schemas import TaskSchema, TaskStatus, TaskPriority
+from .errors import PlanningError
 
 class ProjectPlanner:
-    def __init__(self) -> None:
-        self.current_timeline: Dict[str, Any] = {}
-
-    async def generate_timeline(self, tasks: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Generate a project timeline based on tasks."""
-        timeline = {
-            "start_date": datetime.utcnow(),
-            "end_date": None,
-            "milestones": [],
-            "critical_path": [],
-            "phases": []
-        }
-
-        if not tasks:
-            return timeline
-
-        # Create a directed graph for task dependencies
-        graph = nx.DiGraph()
-        for task in tasks:
-            graph.add_node(task["id"], **task)
-            for dep in task.get("dependencies", []):
-                graph.add_edge(dep, task["id"])
-
-        # Calculate critical path using network analysis
+    """Handles project planning and task organization."""
+    
+    def __init__(self):
+        self.openai = OpenAIClient()
+        self.prompts = self._load_prompts()
+        
+    def _load_prompts(self) -> Dict[str, Any]:
+        """Load prompts from YAML file."""
+        prompt_path = Path("prompts/project_manager/planning.yaml")
+        with open(prompt_path, 'r') as f:
+            return yaml.safe_load(f)
+        
+    async def create_plan(self, project_spec: Dict[str, Any]) -> Dict[str, Any]:
+        """Create a project plan from specifications."""
         try:
-            critical_path = nx.dag_longest_path(graph, weight="estimated_duration")
-            timeline["critical_path"] = [graph.nodes[task_id] for task_id in critical_path]
-        except nx.NetworkXError:
-            timeline["critical_path"] = []
-
-        # Sort tasks by dependencies
-        sorted_tasks = list(nx.topological_sort(graph))
-        sorted_task_data = [graph.nodes[task_id] for task_id in sorted_tasks]
-        
-        # Calculate phase distribution
-        phases = self._distribute_into_phases(sorted_task_data)
-        timeline["phases"] = phases
-
-        # Generate milestones
-        timeline["milestones"] = self._generate_milestones(phases)
-
-        # Calculate end date based on critical path
-        if timeline["critical_path"]:
-            total_duration = sum(task["estimated_duration"] for task in timeline["critical_path"])
-            timeline["end_date"] = timeline["start_date"] + timedelta(hours=total_duration)
-
-        return timeline
-
-    def _distribute_into_phases(self, tasks: List[Dict[str, Any]]) -> List[List[Dict[str, Any]]]:
-        """Distribute tasks into phases based on dependencies and resources."""
-        phases = []
-        current_phase = []
-        
-        for task in tasks:
-            if len(current_phase) >= 5:  # arbitrary limit for demonstration
-                phases.append(current_phase)
-                current_phase = []
-            current_phase.append(task)
+            # Get prompts
+            system_prompt = self.prompts["create_plan"]["system"]
+            user_prompt = self.prompts["create_plan"]["prompt"].format(
+                name=project_spec["name"],
+                description=project_spec["description"],
+                requirements=project_spec["requirements"]
+            )
             
-        if current_phase:
-            phases.append(current_phase)
+            # Generate plan using OpenAI
+            response = await self.openai.get_completion(
+                user_prompt,
+                system_prompt=system_prompt
+            )
             
-        return phases
-
-    def _generate_milestones(self, phases: List[List[Dict[str, Any]]]) -> List[Dict[str, Any]]:
-        """Generate project milestones based on phases."""
-        milestones = []
-        current_date = datetime.utcnow()
-        
-        for i, phase in enumerate(phases):
-            milestone = {
-                "name": f"Phase {i + 1} Complete",
-                "date": current_date + timedelta(hours=i * 4),  # 4-hour phases
-                "deliverables": [task["name"] for task in phase]
+            # Parse and validate plan
+            plan = self._parse_plan_response(response.content)
+            
+            return {
+                "id": project_spec["id"],
+                "name": project_spec["name"],
+                "phases": plan["phases"],
+                "dependencies": plan["dependencies"],
+                "estimated_duration": plan["estimated_duration"],
+                "critical_path": plan["critical_path"],
+                "risk_assessment": plan["risk_assessment"],
+                "created_at": datetime.now().isoformat(),
+                "status": "created"
             }
-            milestones.append(milestone)
             
-        return milestones
-
-    def _calculate_phase_duration(self, phase: List[Dict[str, Any]]) -> float:
-        """Calculate the duration of a phase based on parallel execution."""
-        if not phase:
-            return 0.0
+        except Exception as e:
+            raise PlanningError(f"Failed to create plan: {str(e)}")
             
-        # Create a small graph for the phase
-        graph = nx.DiGraph()
-        for task in phase:
-            graph.add_node(task["id"], duration=task["estimated_duration"])
-            for dep in task.get("dependencies", []):
-                if any(t["id"] == dep for t in phase):  # only consider in-phase dependencies
-                    graph.add_edge(dep, task["id"])
-                    
-        # Find the longest path in this phase
+    async def update_plan(
+        self,
+        current_plan: Dict[str, Any],
+        changes: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Update existing project plan."""
         try:
-            path_length = nx.dag_longest_path_length(graph, weight="duration")
-            return path_length
-        except (nx.NetworkXError, nx.NetworkXNoPath):
-            # If no dependencies, return max duration of any task
-            return max(task["estimated_duration"] for task in phase)
+            # Get prompts
+            system_prompt = self.prompts["update_plan"]["system"]
+            user_prompt = self.prompts["update_plan"]["prompt"].format(
+                current_plan=current_plan,
+                changes=changes
+            )
+            
+            # Generate update using OpenAI
+            response = await self.openai.get_completion(
+                user_prompt,
+                system_prompt=system_prompt
+            )
+            
+            # Parse and validate updated plan
+            updated_plan = self._parse_plan_response(response.content)
+            
+            return {
+                **current_plan,
+                "phases": updated_plan["phases"],
+                "dependencies": updated_plan["dependencies"],
+                "estimated_duration": updated_plan["estimated_duration"],
+                "critical_path": updated_plan["critical_path"],
+                "impact_assessment": updated_plan["impact_assessment"],
+                "updated_at": datetime.now().isoformat(),
+                "status": "updated"
+            }
+            
+        except Exception as e:
+            raise PlanningError(f"Failed to update plan: {str(e)}")
+            
+    def _parse_plan_response(self, response: str) -> Dict[str, Any]:
+        """Parse and validate OpenAI response."""
+        # Implementation would parse JSON and validate structure
+        # For now, we'll assume response is already in correct format
+        return response

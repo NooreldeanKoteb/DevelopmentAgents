@@ -1,51 +1,55 @@
-from pathlib import Path
-from typing import Optional, Dict, Any
 from pydantic_settings import BaseSettings
-from functools import lru_cache
-import logging
+from typing import Optional
 
 class Settings(BaseSettings):
-    """Base configuration settings for the AI Development System."""
-    
-    # Project paths
-    PROJECT_ROOT: Path = Path(__file__).parent.parent.parent
+    """Application settings with environment variable support."""
     
     # Environment
     ENVIRONMENT: str = "development"
-    DEBUG: bool = True
+    DEBUG: bool = False
     
     # OpenAI
     OPENAI_API_KEY: str
     OPENAI_MODEL: str = "gpt-4-turbo-preview"
-    MAX_TOKENS: int = 2000
     TEMPERATURE: float = 0.7
+    MAX_TOKENS: int = 2000
+    RATE_LIMIT: int = 50  # Requests per minute
     
-    # Redis
-    REDIS_URL: str = "redis://localhost:6379"
-    REDIS_MAX_CONNECTIONS: int = 10
-    
-    # Logging
-    LOG_LEVEL: str = "INFO"
-    LOG_FORMAT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    LOG_FILE: Optional[Path] = PROJECT_ROOT / "logs" / "app.log"
+    # Storage
+    REDIS_URL: str = "redis://localhost:6379/0"
+    VECTOR_DB_PATH: str = "./data/vector_store"
     
     # Monitoring
-    ENABLE_METRICS: bool = True
-    METRICS_PORT: int = 9090
-    
-    # Rate Limiting
-    RATE_LIMIT_REQUESTS: int = 50
-    RATE_LIMIT_PERIOD: int = 60  # seconds
-    
-    # Vector Store
-    VECTOR_DB_PATH: Path = PROJECT_ROOT / "data" / "vector_store"
-    
+    LOG_LEVEL: str = "INFO"
+    PROMETHEUS_PORT: int = 9090
+
     class Config:
         env_file = ".env"
-        env_file_encoding = "utf-8"
         case_sensitive = True
 
-@lru_cache()
+    def validate_integration(self) -> bool:
+        """Validate core integration settings."""
+        try:
+            # Check required settings
+            assert self.OPENAI_API_KEY, "OpenAI API key is required"
+            assert self.REDIS_URL, "Redis URL is required"
+            
+            # Validate rate limits
+            assert self.RATE_LIMIT > 0, "Rate limit must be positive"
+            assert self.MAX_TOKENS > 0, "Max tokens must be positive"
+            
+            # Validate ports
+            assert 0 < self.PROMETHEUS_PORT < 65536, "Invalid Prometheus port"
+            
+            return True
+            
+        except AssertionError:
+            return False
+
+_settings = None
+
 def get_settings() -> Settings:
-    """Get cached settings instance."""
-    return Settings() 
+    global _settings
+    if _settings is None:
+        _settings = Settings()
+    return _settings 

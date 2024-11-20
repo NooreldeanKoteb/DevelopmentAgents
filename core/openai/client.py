@@ -1,7 +1,7 @@
 from typing import Dict, Any, Optional
 import asyncio
 import json
-from openai import AsyncOpenAI
+from openai import AsyncOpenAI, RateLimitError
 from datetime import datetime
 from pydantic import ValidationError
 
@@ -101,7 +101,7 @@ class OpenAIClient:
                 )
                 return response
 
-            except openai.RateLimitError:
+            except RateLimitError:
                 if attempt == max_retries - 1:
                     raise
                 delay = base_delay * (2 ** attempt)

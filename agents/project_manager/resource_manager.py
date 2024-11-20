@@ -1,118 +1,167 @@
-from typing import List, Dict, Any, Optional
+from typing import Dict, Any, List, Optional
 from datetime import datetime
-import heapq
-from dataclasses import dataclass
-from prometheus_client import Counter, Gauge
-from agents.project_manager.persistence import PersistenceManager
+import asyncio
+from enum import Enum
+from pydantic import BaseModel
 
-@dataclass
-class AgentLoad:
-    agent_id: str
-    current_load: float
-    capacity: float
-    specialization: List[str]
-    performance_score: float
+from core.schemas import (
+    TaskStatus,
+    TaskSchema,
+    ResourceSchema,
+    AgentSchema,
+    AgentStatus,
+    ResourceStatus
+)
+from .errors import ResourceManagementError
 
 class ResourceManager:
-    def __init__(self) -> None:
-        self.persistence = PersistenceManager()
-        self.load_threshold = 0.8  # 80% capacity
+    """Manages resource allocation and optimization."""
+    
+    def __init__(self):
+        self.agents: Dict[str, AgentSchema] = {}
+        self.resources: Dict[str, ResourceSchema] = {}
         
-        # Metrics
-        self.allocation_counter = Counter(
-            'resource_allocations_total', 
-            'Total number of resource allocations'
-        )
-        self.agent_load_gauge = Gauge(
-            'agent_load', 
-            'Current load of agents',
-            ['agent_id']
-        )
-
-    async def allocate_resources(self, tasks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Allocate resources using load balancing."""
-        allocations = []
-        agent_loads = await self._get_agent_loads()
-        
-        for task in tasks:
-            best_agent = await self._find_optimal_agent(task, agent_loads)
+    async def allocate_resources(
+        self,
+        tasks: List[TaskSchema]
+    ) -> Dict[str, ResourceSchema]:
+        """Allocate resources to tasks."""
+        try:
+            allocations = {}
             
-            if best_agent:
-                allocation = {
-                    "task_id": task["id"],
-                    "agent_id": best_agent.agent_id,
-                    "allocated_at": datetime.utcnow(),
-                    "estimated_hours": task["estimated_duration"],
-                    "status": "allocated"
+            for task in tasks:
+                # Determine required resources
+                required_resources = self._determine_requirements(task)
+                
+                # Find available resources
+                available_resources = self._find_available_resources(
+                    required_resources
+                )
+                
+                if not available_resources:
+                    raise ResourceManagementError(
+                        f"Insufficient resources for task {task.id}"
+                    )
+                    
+                # Allocate resources
+                allocations[task.id] = {
+                    "resources": available_resources,
+                    "allocated_at": datetime.now().isoformat()
                 }
                 
-                # Update agent load
-                self._update_agent_load(best_agent, task["estimated_duration"])
-                allocations.append(allocation)
-                
-                # Update metrics
-                self.allocation_counter.inc()
-                self.agent_load_gauge.labels(agent_id=best_agent.agent_id).set(best_agent.current_load)
-                
-        return allocations
-
-    async def _find_optimal_agent(self, task: Dict[str, Any], agent_loads: List[AgentLoad]) -> Optional[AgentLoad]:
-        """Find the optimal agent using multiple criteria."""
-        candidates = []
-        required_skills = set(task.get("required_skills", []))
-        
-        for agent in agent_loads:
-            if agent.current_load >= self.load_threshold:
-                continue
-                
-            agent_skills = set(agent.specialization)
-            skill_match_score = len(required_skills & agent_skills) / len(required_skills) if required_skills else 1.0
+                # Update resource status
+                for resource in available_resources:
+                    resource.status = ResourceStatus.IN_USE
+                    resource.allocated_to = task.id
+                    
+            return allocations
             
-            # Calculate weighted score
-            score = (
-                0.4 * (1 - agent.current_load) +  # Load balance
-                0.3 * skill_match_score +         # Skill match
-                0.3 * agent.performance_score     # Historical performance
+        except Exception as e:
+            raise ResourceManagementError(
+                f"Failed to allocate resources: {str(e)}"
             )
             
-            heapq.heappush(candidates, (-score, agent))  # Negative score for max-heap
+    async def reallocate_resources(
+        self,
+        tasks: List[TaskSchema],
+        current_allocations: Dict[str, ResourceSchema]
+    ) -> Dict[str, ResourceSchema]:
+        """Reallocate resources based on changes."""
+        try:
+            # Release completed task resources
+            self._release_completed_resources(tasks, current_allocations)
             
-        return candidates[0][1] if candidates else None
-
-    async def _get_agent_loads(self) -> List[AgentLoad]:
-        """Get current load information for all agents."""
-        agents = await self.persistence.get_all_resources()
-        return [
-            AgentLoad(
-                agent_id=agent["id"],
-                current_load=agent["current_load"],
-                capacity=agent.get("capacity", 1.0),
-                specialization=agent.get("capabilities", []),
-                performance_score=agent.get("performance_score", 0.5)
+            # Allocate resources for pending tasks
+            pending_tasks = [
+                task for task in tasks
+                if not task.id in current_allocations
+            ]
+            
+            new_allocations = await self.allocate_resources(pending_tasks)
+            
+            return {**current_allocations, **new_allocations}
+            
+        except Exception as e:
+            raise ResourceManagementError(
+                f"Failed to reallocate resources: {str(e)}"
             )
-            for agent in agents
-        ]
-
-    def _find_best_agent(self, task: Dict[str, Any]) -> str:
-        """Find the most suitable agent for a task."""
-        # Placeholder - implement actual agent selection logic
-        return "default_agent"
-
-    async def register_agent(self, agent_id: str, capabilities: Dict[str, Any]) -> None:
-        """Register a new agent with their capabilities."""
-        agent_data = {
-            "capabilities": capabilities,
-            "current_load": 0,
-            "last_updated": datetime.utcnow().isoformat()
+            
+    async def update_agent_status(
+        self,
+        agent_id: str,
+        status: AgentStatus
+    ) -> None:
+        """Update agent status and availability."""
+        if agent_id in self.agents:
+            self.agents[agent_id].status = status
+            
+            # Update associated resources
+            for resource in self.resources.values():
+                if resource.allocated_to == agent_id:
+                    if status == AgentStatus.OFFLINE:
+                        resource.status = ResourceStatus.UNAVAILABLE
+                    elif status == AgentStatus.IDLE:
+                        resource.status = ResourceStatus.AVAILABLE
+                        
+    async def update_resource_status(
+        self,
+        resource_id: str,
+        status: ResourceStatus
+    ) -> None:
+        """Update resource status."""
+        if resource_id in self.resources:
+            self.resources[resource_id].status = status
+            
+    def _determine_requirements(
+        self,
+        task: TaskSchema
+    ) -> Dict[str, Any]:
+        """Determine resource requirements for a task."""
+        # Implementation would analyze task requirements
+        # For now, return placeholder requirements
+        return {
+            "cpu": 1,
+            "memory": 1024,
+            "agents": ["python", "testing"]
         }
-        await self.persistence.save_resource(agent_id, agent_data)
-
-    async def update_agent_status(self, agent_id: str, status_update: Dict[str, Any]) -> None:
-        """Update an agent's status and availability."""
-        agent_data = await self.persistence.get_resource(agent_id)
-        if not agent_data:
-            raise ValueError(f"Agent {agent_id} not found")
-            
-        agent_data.update(status_update)
-        agent_data["last_updated"] = datetime.utcnow().isoformat()
-        await self.persistence.save_resource(agent_id, agent_data) 
+        
+    def _find_available_resources(
+        self,
+        requirements: Dict[str, Any]
+    ) -> List[ResourceSchema]:
+        """Find available resources matching requirements."""
+        available = []
+        
+        for resource in self.resources.values():
+            if (resource.status == ResourceStatus.AVAILABLE and
+                self._matches_requirements(resource, requirements)):
+                available.append(resource)
+                
+        return available
+        
+    def _matches_requirements(
+        self,
+        resource: ResourceSchema,
+        requirements: Dict[str, Any]
+    ) -> bool:
+        """Check if resource matches requirements."""
+        # Implementation would check resource capabilities
+        # For now, return simple match
+        return True
+        
+    def _release_completed_resources(
+        self,
+        tasks: List[TaskSchema],
+        allocations: Dict[str, ResourceSchema]
+    ) -> None:
+        """Release resources from completed tasks."""
+        completed_task_ids = {
+            task.id for task in tasks
+            if task.status == TaskStatus.COMPLETED
+        }
+        
+        for task_id in completed_task_ids:
+            if task_id in allocations:
+                for resource in allocations[task_id]["resources"]:
+                    resource.status = ResourceStatus.AVAILABLE
+                    resource.allocated_to = None

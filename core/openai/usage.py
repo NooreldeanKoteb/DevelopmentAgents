@@ -1,61 +1,37 @@
 from datetime import datetime
-from typing import Dict, Any, Optional
-import json
-import redis.asyncio as redis
-from core.config import get_settings, monitor_operation
-from .errors import TokenLimitError
+from prometheus_client import Counter, Gauge
 
 class TokenUsageTracker:
-    def __init__(self):
-        self.redis = redis.from_url(get_settings().REDIS_URL)
-        self.settings = get_settings()
+    """Tracks token usage and costs."""
     
-    @monitor_operation(agent_type="openai", operation="track_usage")
-    async def track_usage(
-        self,
-        usage: Dict[str, int],
-        model: str,
-        cost: float,
-        request_id: Optional[str] = None
-    ) -> None:
-        """Track token usage and cost."""
-        timestamp = datetime.utcnow().isoformat()
+    def __init__(self):
+        self.token_counter = Counter(
+            'openai_tokens_total',
+            'Total tokens used by model type',
+            ['model']
+        )
         
-        # Store detailed usage record
-        usage_record = {
-            "timestamp": timestamp,
-            "model": model,
-            "prompt_tokens": usage["prompt_tokens"],
-            "completion_tokens": usage["completion_tokens"],
-            "total_tokens": usage["total_tokens"],
-            "cost": cost,
-            "request_id": request_id
+        self.cost_gauge = Gauge(
+            'openai_cost_total',
+            'Total cost in USD by model type',
+            ['model']
+        )
+        
+        self.model_rates = {
+            "gpt-4": 0.03,      # $0.03 per 1K tokens
+            "gpt-4-turbo": 0.01,  # $0.01 per 1K tokens
+            "gpt-3.5-turbo": 0.002  # $0.002 per 1K tokens
         }
         
-        async with self.redis.pipeline() as pipe:
-            # Store detailed record
-            await pipe.lpush(
-                "openai:usage:history",
-                json.dumps(usage_record)
-            )
-            
-            # Update running totals
-            await pipe.hincrby("openai:usage:tokens", "total", usage["total_tokens"])
-            await pipe.hincrby("openai:usage:tokens", "prompt", usage["prompt_tokens"])
-            await pipe.hincrby("openai:usage:tokens", "completion", usage["completion_tokens"])
-            
-            # Update costs
-            await pipe.hincrbyfloat("openai:usage:costs", "total", cost)
-            await pipe.hincrbyfloat("openai:usage:costs", model, cost)
-            
-            await pipe.execute()
-    
-    async def get_usage_stats(self) -> Dict[str, Any]:
-        """Get current usage statistics."""
-        tokens = await self.redis.hgetall("openai:usage:tokens")
-        costs = await self.redis.hgetall("openai:usage:costs")
+    def track_usage(self, model: str, prompt_tokens: int, completion_tokens: int) -> None:
+        """Track token usage and update metrics."""
+        total_tokens = prompt_tokens + completion_tokens
+        self.token_counter.labels(model=model).inc(total_tokens)
         
-        return {
-            "tokens": tokens,
-            "costs": costs
-        } 
+        # Calculate cost
+        base_rate = self.model_rates.get(model.split(':')[0], 0.01)
+        input_cost = (prompt_tokens / 1000) * base_rate
+        output_cost = (completion_tokens / 1000) * (base_rate * 2)
+        total_cost = input_cost + output_cost
+        
+        self.cost_gauge.labels(model=model).inc(total_cost) 

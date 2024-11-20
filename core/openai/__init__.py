@@ -1,14 +1,13 @@
 from .client import OpenAIClient
-from .cache import ResponseCache
-from .errors import OpenAIError, RateLimitError, ResponseValidationError, TokenLimitError
-from .rate_limiter import RateLimiter
+from .schemas import OpenAIRequest, OpenAIResponse
+from .errors import OpenAIError, RateLimitError, TokenLimitError, ResponseValidationError
 
 __all__ = [
     'OpenAIClient',
-    'ResponseCache',
+    'OpenAIRequest',
+    'OpenAIResponse',
     'OpenAIError',
     'RateLimitError',
-    'ResponseValidationError',
     'TokenLimitError',
-    'RateLimiter'
+    'ResponseValidationError'
 ] 

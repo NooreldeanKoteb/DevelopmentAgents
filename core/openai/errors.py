@@ -1,44 +1,28 @@
 from typing import Optional, Dict, Any
 from core.config.errors import AppError
 
-class OpenAIError(AppError):
-    """Base OpenAI error."""
-    pass
+class OpenAIError(Exception):
+    """Base exception for OpenAI related errors."""
+    def __init__(self, message: str, code: str, details: dict = None):
+        self.message = message
+        self.code = code
+        self.details = details or {}
+        super().__init__(self.message)
 
 class RateLimitError(OpenAIError):
-    """Rate limit exceeded error."""
-    def __init__(
-        self,
-        message: str,
-        retry_after: int,
-        code: str = "rate_limit_exceeded"
-    ):
-        super().__init__(message=message, code=code)
-        self.retry_after = retry_after
+    """Raised when API rate limit is exceeded."""
+    def __init__(self, message: str = "Rate limit exceeded", details: dict = None):
+        super().__init__(message, code="rate_limit_error", details=details)
 
 class TokenLimitError(OpenAIError):
-    """Token usage limit exceeded error."""
-    def __init__(
-        self,
-        message: str,
-        current_usage: int,
-        limit: int,
-        code: str = "token_limit_exceeded"
-    ):
-        super().__init__(message=message, code=code)
-        self.current_usage = current_usage
-        self.limit = limit
+    """Raised when token limit is exceeded."""
+    def __init__(self, message: str = "Token limit exceeded", details: dict = None):
+        super().__init__(message, code="token_limit_error", details=details)
 
 class ResponseValidationError(OpenAIError):
-    """Response validation error."""
-    def __init__(
-        self,
-        message: str,
-        response: Dict[str, Any],
-        code: str = "invalid_response"
-    ):
-        super().__init__(message=message, code=code)
-        self.response = response
+    """Raised when response validation fails."""
+    def __init__(self, message: str = "Response validation failed", details: dict = None):
+        super().__init__(message, code="validation_error", details=details)
 
 class APIConnectionError(OpenAIError):
     """API connection error."""

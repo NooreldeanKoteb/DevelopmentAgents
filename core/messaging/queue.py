@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 import redis.asyncio as redis
 from .schemas import Message, MessagePriority, MessageStatus
 from core.config import get_settings
+import asyncio
 
 class QueueManager:
     """Manages message queues and their states."""
@@ -56,3 +57,31 @@ class QueueManager:
         while message_data := await self.redis.rpop("queue:dead_letter"):
             message = Message.model_validate_json(message_data)
             # Implement dead letter queue processing logic
+
+class MessageQueue:
+    """Implements a FIFO queue for messages with timeout support."""
+    
+    def __init__(self, maxsize: int = 0):
+        self.queue = asyncio.Queue(maxsize=maxsize)
+        
+    async def put(self, message: Message) -> None:
+        """Add a message to the queue."""
+        await self.queue.put(message)
+        
+    async def get(self, timeout: Optional[float] = None) -> Optional[Message]:
+        """Get a message from the queue with optional timeout."""
+        try:
+            if timeout is None:
+                return await self.queue.get()
+            else:
+                return await asyncio.wait_for(self.queue.get(), timeout)
+        except asyncio.TimeoutError:
+            return None
+            
+    def empty(self) -> bool:
+        """Check if the queue is empty."""
+        return self.queue.empty()
+        
+    def qsize(self) -> int:
+        """Get the current size of the queue."""
+        return self.queue.qsize()

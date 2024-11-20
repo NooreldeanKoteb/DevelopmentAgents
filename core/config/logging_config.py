@@ -1,39 +1,41 @@
 import logging
-import sys
-from pathlib import Path
-from logging.handlers import RotatingFileHandler
-from .settings import get_settings
+import logging.config
+from core.config.settings import get_settings
 
-def setup_logging():
-    """Configure the logging system."""
+def setup_logging() -> None:
+    """Configure logging based on settings."""
     settings = get_settings()
     
-    # Create logs directory if it doesn't exist
-    if settings.LOG_FILE:
-        settings.LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+    log_config = {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "formatters": {
+            "standard": {
+                "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+            },
+            "json": {
+                "format": "%(asctime)s %(name)s %(levelname)s %(message)s"
+            }
+        },
+        "handlers": {
+            "default": {
+                "level": settings.LOG_LEVEL,
+                "formatter": settings.LOG_FORMAT,
+                "class": "logging.StreamHandler",
+                "stream": "ext://sys.stdout",
+            }
+        },
+        "loggers": {
+            "": {
+                "handlers": ["default"],
+                "level": settings.LOG_LEVEL,
+                "propagate": True
+            }
+        }
+    }
     
-    # Configure root logger
-    root_logger = logging.getLogger()
-    root_logger.setLevel(settings.LOG_LEVEL)
-    
-    # Create formatters
-    formatter = logging.Formatter(settings.LOG_FORMAT)
-    
-    # Console handler
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setFormatter(formatter)
-    root_logger.addHandler(console_handler)
-    
-    # File handler (if LOG_FILE is set)
-    if settings.LOG_FILE:
-        file_handler = RotatingFileHandler(
-            settings.LOG_FILE,
-            maxBytes=10_000_000,  # 10MB
-            backupCount=5
-        )
-        file_handler.setFormatter(formatter)
-        root_logger.addHandler(file_handler)
+    logging.config.dictConfig(log_config)
     
     # Set logging levels for third-party packages
     logging.getLogger("asyncio").setLevel(logging.WARNING)
-    logging.getLogger("urllib3").setLevel(logging.WARNING) 
+    logging.getLogger("urllib3").setLevel(logging.WARNING)  
