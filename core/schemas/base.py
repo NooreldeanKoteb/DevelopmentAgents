@@ -22,3 +22,12 @@ class MetadataSchema(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
     
     metadata: Dict[str, Any] = Field(default_factory=dict) 
+
+class ErrorSchema(BaseModel):
+    """Schema for error responses."""
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    
+    code: str
+    message: str
+    details: Optional[Dict[str, Any]] = None
+    timestamp: datetime = Field(default_factory=datetime.utcnow)

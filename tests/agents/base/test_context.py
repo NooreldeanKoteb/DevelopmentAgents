@@ -1,12 +1,12 @@
 import pytest
 from datetime import datetime
-from agents.base import AgentContext
+from agents.base import Context
 from core.messaging import Message
 
 @pytest.fixture
 def context():
     """Provide a context instance."""
-    return AgentContext()
+    return Context()
 
 def test_context_update(context):
     """Test context update with messages."""
@@ -17,8 +17,8 @@ def test_context_update(context):
     )
     
     context.update(message)
-    assert len(context.history) == 1
-    assert context.history[0]["message"] == message
+    assert context.last_message == message
+    assert "test" in context.state
 
 def test_context_history(context):
     """Test conversation history management."""
@@ -64,7 +64,7 @@ def test_context_clear(context):
 
 def test_context_max_history(context):
     """Test maximum history limit."""
-    context = AgentContext(max_history=2)
+    context = Context(max_history=2)
     
     # Add messages
     for i in range(3):
