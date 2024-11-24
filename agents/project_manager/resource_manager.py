@@ -3,6 +3,7 @@ from datetime import datetime
 import asyncio
 from enum import Enum
 from pydantic import BaseModel
+from agents.project_manager.persistence import PersistenceManager
 
 from core.schemas import (
     TaskStatus,
@@ -17,9 +18,9 @@ from .errors import ResourceManagementError
 class ResourceManager:
     """Manages resource allocation and optimization."""
     
-    def __init__(self):
-        self.agents: Dict[str, AgentSchema] = {}
-        self.resources: Dict[str, ResourceSchema] = {}
+    def __init__(self, persistence_manager: Optional[PersistenceManager] = None):
+        """Initialize resource manager."""
+        self.persistence = persistence_manager or PersistenceManager()
         
     async def allocate_resources(
         self,

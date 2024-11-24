@@ -8,6 +8,8 @@ from agents.project_manager.planner import ProjectPlanner
 from agents.project_manager.agent import ProjectManagerAgent
 from core.config.settings import Settings
 from prometheus_client import REGISTRY
+from core.integration import CoreIntegration
+from core.storage.message_store import MessageStore
 
 @pytest.fixture(scope="session")
 def event_loop():
@@ -63,9 +65,10 @@ async def persistence(redis_client):
 async def task_manager(persistence):
     return TaskManager(persistence=persistence)
 
-@pytest.fixture
-async def resource_manager(persistence):
-    return ResourceManager(persistence=persistence)
+@pytest.fixture(scope="function")
+async def resource_manager(persistence_manager):
+    """Create a resource manager for testing."""
+    return ResourceManager(persistence_manager=persistence_manager)
 
 @pytest.fixture
 async def planner():
@@ -92,4 +95,24 @@ async def clean_redis():
 def clean_metrics():
     """Clean Prometheus metrics before each test."""
     for collector in list(REGISTRY._collector_to_names.keys()):
-        REGISTRY.unregister(collector) 
+        REGISTRY.unregister(collector)
+
+@pytest.fixture(scope="function")
+async def message_store(redis_client):
+    """Create a message store for testing."""
+    return MessageStore(redis=redis_client)
+
+@pytest.fixture(scope="function")
+async def core_integration(event_loop):
+    """Provide a CoreIntegration instance."""
+    integration = CoreIntegration()
+    await integration.initialize()
+    yield integration
+    await integration.cleanup()
+
+@pytest.fixture(autouse=True)
+async def cleanup_integration(event_loop):
+    """Cleanup any remaining integration resources."""
+    yield
+    # Allow event loop to process pending tasks
+    await asyncio.sleep(0.1)

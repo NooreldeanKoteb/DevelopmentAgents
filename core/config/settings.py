@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     # Monitoring
     LOG_LEVEL: str = "INFO"
     PROMETHEUS_PORT: int = 9090
+    SERVER_PORT: int = 8000  # Add default server port
 
     class Config:
         env_file = ".env"

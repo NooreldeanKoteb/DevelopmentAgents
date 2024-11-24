@@ -13,11 +13,12 @@ class MessageBroker:
         self.subscribers: Dict[str, List[Callable[[Message], Awaitable[None]]]] = {}
         self.error_handlers = set()
         self._closed = False
+        self._running = True
+        self._tasks = set()
         
     async def close(self):
-        """Cleanup broker resources."""
-        self._closed = True
-        # Clear all subscriptions
+        """Close broker and cleanup resources."""
+        self._running = False
         self.subscribers.clear()
         self.error_handlers.clear()
     
@@ -72,11 +73,29 @@ class MessageBroker:
             return None
         return await self.queues[topic].get()
     
+    def on_error(self, handler: Callable):
+        """Register an error handler."""
+        self.error_handlers.add(handler)
+        
     async def _handle_error(self, error: Exception):
-        """Handle an error."""
+        """Handle errors by notifying registered handlers."""
         for handler in self.error_handlers:
-            try:
-                await handler(error)
-            except Exception as e:
-                await self._handle_error(e)
+            await handler(error)
+    
+    async def cleanup(self) -> None:
+        """Cleanup broker resources."""
+        self._running = False
+        
+        # Cancel all running tasks
+        for task in self._tasks:
+            task.cancel()
+            
+        # Wait for tasks to complete
+        if self._tasks:
+            await asyncio.gather(*self._tasks, return_exceptions=True)
+            
+        # Clear subscribers and tasks
+        self.subscribers.clear()
+        self._tasks.clear()
+        self.error_handlers.clear()
     

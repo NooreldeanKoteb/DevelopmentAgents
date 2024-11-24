@@ -4,6 +4,9 @@ from typing import Optional, Dict, Any
 from redis.asyncio import Redis
 from prometheus_client import start_http_server
 import logging
+import socket
+from contextlib import closing
+from copy import deepcopy
 
 from .config import get_settings
 from .messaging import MessageBroker
@@ -34,53 +37,48 @@ class CoreIntegration:
         self.initialized: bool = False
         self._health_check_interval: int = 60  # seconds
         self._health_check_task: Optional[asyncio.Task] = None
-        
-    async def initialize(self) -> None:
-        """Initialize all core services."""
-        try:
-            # Initialize monitoring first for logging
-            self.metrics = CoreMetrics()
-            self.logger = CoreLogger()
-            self.logger.logger.info("Starting core services initialization")
             
-            # Initialize Redis
+    def _get_free_port(self) -> int:
+        """Get a free port number."""
+        with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
+            s.bind(('', 0))
+            s.listen(1)
+            port = s.getsockname()[1]
+            return port
+
+    async def initialize(self) -> None:
+        """Initialize all services."""
+        if self.initialized:
+            return
+            
+        try:
+            # Create a copy of settings and update with dynamic ports
+            self.settings = deepcopy(get_settings())
+            self.settings.SERVER_PORT = self._get_free_port()
+            self.settings.PROMETHEUS_PORT = self._get_free_port()
+            
+            # Initialize Redis with unique db
+            db_index = self._get_free_port() % 16  # Use port number to get a unique DB index
             self.redis = Redis.from_url(
-                self.settings.REDIS_URL,
+                f"{self.settings.REDIS_URL}/{db_index}",
                 decode_responses=True
             )
             await self.redis.ping()
-            self.logger.logger.info("Redis connection established")
             
-            # Initialize storage services
-            self.vector_store = VectorStore()
-            self.message_store = MessageStore()
-            self.logger.logger.info("Storage services initialized")
-            
-            # Initialize messaging
+            # Initialize other services
             self.message_broker = MessageBroker()
-            self.logger.logger.info("Message broker initialized")
-            
-            # Initialize OpenAI client
             self.openai_client = OpenAIClient()
-            self.logger.logger.info("OpenAI client initialized")
-            
-            # Start Prometheus metrics server
-            start_http_server(self.settings.PROMETHEUS_PORT)
-            self.logger.logger.info(
-                f"Metrics server started on port {self.settings.PROMETHEUS_PORT}"
-            )
+            self.vector_store = VectorStore()
+            self.message_store = MessageStore(redis=self.redis)
+            self.metrics = CoreMetrics()
+            self.logger = CoreLogger()
             
             # Start health check loop
             self._health_check_task = asyncio.create_task(self._health_check_loop())
             
             self.initialized = True
-            self.logger.logger.info("Core services initialization completed")
             
         except Exception as e:
-            self.logger.logger.error(
-                "Core integration failed",
-                extra={"error": str(e), "error_type": type(e).__name__}
-            )
             await self.cleanup()
             raise RuntimeError(f"Core integration failed: {str(e)}")
             
@@ -199,31 +197,26 @@ class CoreIntegration:
             await asyncio.sleep(self._health_check_interval)
             
     async def cleanup(self) -> None:
-        """Cleanup core services."""
-        self.logger.logger.info("Starting core services cleanup")
-        
-        # Cancel health check loop
+        """Cleanup all services."""
         if self._health_check_task:
             self._health_check_task.cancel()
             try:
                 await self._health_check_task
             except asyncio.CancelledError:
                 pass
-        
-        # Cleanup Redis connections
+
+        # Cleanup services in order
+        if self.message_broker:
+            await self.message_broker.close()
+            
+        if self.vector_store:
+            await self.vector_store.cleanup()
+            
         if self.redis:
             await self.redis.close()
-        if self.message_store:
-            await self.message_store.redis.close()
-            
-        # Cleanup message broker
-        if self.message_broker:
-            for queue in self.message_broker.queues.values():
-                while not queue.empty():
-                    await queue.get()
-                    
+
         self.initialized = False
-        self.logger.logger.info("Core services cleanup completed")
+        await asyncio.sleep(0.1)
         
     async def __aenter__(self):
         """Async context manager entry."""

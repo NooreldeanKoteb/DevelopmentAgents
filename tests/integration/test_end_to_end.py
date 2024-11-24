@@ -1,9 +1,12 @@
 import pytest
 from core.schemas import TaskSchema, TaskStatus, TaskPriority, BusinessImpact
+from agents.project_manager.resource_manager import ResourceManager
 
 class TestEndToEnd:
     @pytest.mark.asyncio
-    async def test_complete_project_lifecycle(self, project_manager, planner):
+    async def test_complete_project_lifecycle(self, persistence_manager):
+        """Test complete project lifecycle."""
+        resource_manager = ResourceManager(persistence_manager=persistence_manager)
         # Create project plan
         tasks = [
             TaskSchema(
@@ -35,6 +38,6 @@ class TestEndToEnd:
             "tasks": [task.model_dump() for task in tasks]
         }
         
-        plan = await planner.create_project_plan(project_data)
+        plan = await resource_manager.create_project_plan(project_data)
         assert "critical_path" in plan
         assert len(plan["tasks"]) == 2 

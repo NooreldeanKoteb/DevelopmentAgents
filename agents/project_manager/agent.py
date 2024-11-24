@@ -11,6 +11,7 @@ from core.schemas import (
 from .planner import ProjectPlanner
 from .task_manager import TaskManager
 from .resource_manager import ResourceManager
+from agents.project_manager.persistence import PersistenceManager
 
 class ProjectManagerAgent(BaseAgent):
     """Agent responsible for project management and coordination."""

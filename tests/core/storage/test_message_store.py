@@ -4,15 +4,13 @@ from core.storage.message_store import MessageStore
 from core.messaging import Message
 
 @pytest.fixture
-async def message_store():
-    store = MessageStore()
-    yield store
-    # Cleanup after tests
-    await store.redis.flushdb()
+async def message_store(redis_client):
+    """Create a message store instance."""
+    return MessageStore(redis=redis_client)
 
 @pytest.mark.asyncio
 async def test_store_and_retrieve_message(message_store):
-    """Test basic message storage and retrieval."""
+    """Test storing and retrieving messages."""
     message = Message(
         topic="test_topic",
         content={"test": "data"},

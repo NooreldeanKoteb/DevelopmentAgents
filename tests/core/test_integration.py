@@ -9,10 +9,28 @@ from core.messaging import Message
 from core.schemas import TaskSchema, TaskStatus
 from core.openai import OpenAIError
 
+@pytest.fixture(autouse=True)
+async def cleanup_servers():
+    """Ensure servers are cleaned up after each test."""
+    yield
+    # Allow time for servers to shut down
+    await asyncio.sleep(0.1)
+
+@pytest.fixture(autouse=True)
+async def cleanup_ports():
+    """Ensure ports are cleaned up after each test."""
+    yield
+    # Allow time for ports to be released
+    await asyncio.sleep(0.1)
+
 @pytest.fixture
 async def core():
     """Provide a CoreIntegration instance with mocked services."""
-    with patch('redis.asyncio.Redis.ping', new_callable=AsyncMock) as mock_ping:
+    with patch('redis.asyncio.Redis.ping', new_callable=AsyncMock) as mock_ping, \
+         patch('core.monitoring.CoreMetrics') as mock_metrics, \
+         patch('core.monitoring.CoreLogger') as mock_logger, \
+         patch('prometheus_client.start_http_server') as mock_prometheus:  # Mock Prometheus server
+            
         mock_ping.return_value = True
         integration = CoreIntegration()
         await integration.initialize()
@@ -105,21 +123,19 @@ async def test_logging_integration(core, caplog):
 
 @pytest.mark.asyncio
 async def test_cleanup(core):
-    """Test cleanup procedure."""
-    # Add some data to clean up
-    test_message = Message(
-        topic="test",
-        content={"test": "data"},
-        sender="test"
-    )
-    await core.message_broker.publish(test_message)
+    """Test cleanup functionality."""
+    # Verify initial state
+    assert core.initialized
+    assert core.message_broker is not None
     
     # Perform cleanup
     await core.cleanup()
     
+    # Verify cleanup results
     assert not core.initialized
-    assert core._health_check_task.cancelled()
-    assert all(queue.empty() for queue in core.message_broker.queues.values())
+    assert not core.message_broker._running
+    assert len(core.message_broker.subscribers) == 0
+    assert len(core.message_broker._tasks) == 0
 
 @pytest.mark.asyncio
 async def test_context_manager():

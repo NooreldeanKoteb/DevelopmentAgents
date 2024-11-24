@@ -6,11 +6,9 @@ from agents.base import Memory, MemoryError
 
 
 @pytest.fixture
-async def memory():
+def memory():
     """Provide a memory instance."""
-    memory = Memory("test-agent")
-    yield memory
-    await memory.clear()
+    return Memory(redis_url="redis://localhost:6379/0")
 
 @pytest.mark.asyncio
 async def test_memory_storage(memory):

@@ -10,11 +10,20 @@ from core.schemas import TaskSchema, ResourceSchema, TaskStatus, TaskPriority, B
 class PersistenceManager:
     """Manages data persistence using Redis."""
     
-    def __init__(self, redis_url: str = "redis://localhost:6379/0"):
-        self.pool = ConnectionPool.from_url(
-            redis_url,
-            decode_responses=True
-        )
+    def __init__(self, redis_url: Optional[str] = None, redis_client: Optional[Redis] = None):
+        if redis_client:
+            self.redis = redis_client
+        elif redis_url:
+            self.redis = Redis.from_url(redis_url)
+        else:
+            self.redis = Redis.from_url("redis://localhost:6379/0")
+        
+    @classmethod
+    def from_client(cls, redis_client: Redis) -> 'PersistenceManager':
+        """Create instance from existing Redis client."""
+        instance = cls.__new__(cls)
+        instance.redis = redis_client
+        return instance
         
     @asynccontextmanager
     async def get_connection(self) -> AsyncGenerator[Redis, None]:

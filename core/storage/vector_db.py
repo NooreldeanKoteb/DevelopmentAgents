@@ -7,11 +7,25 @@ class VectorStore:
     """Manages vector storage and retrieval for embeddings."""
     
     def __init__(self):
-        settings = get_settings()
-        self.client = chromadb.Client(Settings(
-            chroma_db_impl="duckdb+parquet",
-            persist_directory=settings.VECTOR_DB_PATH
-        ))
+        self.client = chromadb.Client(
+            Settings(
+                is_persistent=True,
+                persist_directory="./data/chroma",
+                anonymized_telemetry=False
+            )
+        )
+        self.collections = {}
+        self.initialized = False
+        
+    async def initialize(self):
+        self.initialized = True
+        
+    async def cleanup(self):
+        """Cleanup vector store resources."""
+        for collection in self.collections.values():
+            await collection.cleanup()
+        self.collections.clear()
+        self.initialized = False
         
     async def store_embeddings(
         self, 
