@@ -8,26 +8,41 @@ class Context:
     
     def __init__(self, max_history: int = 100):
         self.max_history = max_history
-        self._history = []
-        self._variables = {}
+        self.history = []
+        self.variables = {}
+        self.state = {}
+        self.last_message = None
+        self.last_updated = datetime.utcnow()
         
-    def get_history(self) -> List[Dict]:
-        return self._history
+    def get_history(self, limit: Optional[int] = None, topic: Optional[str] = None) -> List[Dict]:
+        """Get message history with optional limit and topic filter."""
+        filtered = self.history
+        if topic:
+            filtered = [h for h in filtered if getattr(h["message"], "topic", None) == topic]
+        if limit:
+            filtered = filtered[-limit:]
+        return filtered
         
     def add_to_history(self, entry: Dict):
-        self._history.append(entry)
-        if len(self._history) > self.max_history:
-            self._history.pop(0)
+        self.history.append(entry)
+        if len(self.history) > self.max_history:
+            self.history.pop(0)
             
     def set_variable(self, key: str, value: Any):
-        self._variables[key] = value
+        """Set a variable in context."""
+        self.variables[key] = value
         
     def get_variable(self, key: str) -> Any:
-        return self._variables.get(key)
+        """Get a variable from context."""
+        return self.variables.get(key)
         
-    def clear(self):
-        self._history.clear()
-        self._variables.clear()
+    def clear(self) -> None:
+        """Clear context state and history."""
+        self.history = []
+        self.variables = {}
+        self.state = {}
+        self.last_message = None
+        self.last_updated = datetime.utcnow()
         
     def update(self, message: Message) -> None:
         """Update context with new message."""
@@ -38,6 +53,12 @@ class Context:
             # Update state based on message content
             if message.content:
                 self.state.update(message.content)
+                
+            # Add to history
+            self.add_to_history({
+                "message": message,
+                "timestamp": self.last_updated
+            })
                 
         except Exception as e:
             raise ContextError(f"Failed to update context: {str(e)}")
@@ -51,7 +72,9 @@ class Context:
         }
         
     def clear(self) -> None:
-        """Clear context state."""
+        """Clear context state and history."""
+        self.history = []
+        self.variables = {}
         self.state = {}
         self.last_message = None
         self.last_updated = datetime.utcnow() 
