@@ -1,5 +1,10 @@
 import pytest
-from core.schemas import TaskSchema, TaskStatus, TaskPriority, BusinessImpact
+from core.schemas.enums import (
+    TaskStatus,
+    TaskPriority,
+    BusinessImpact
+)
+from core.schemas import TaskSchema
 from agents.project_manager.resource_manager import ResourceManager
 
 class TestEndToEnd:

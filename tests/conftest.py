@@ -10,6 +10,7 @@ from core.config.settings import Settings
 from prometheus_client import REGISTRY
 from core.integration import CoreIntegration
 from core.storage.message_store import MessageStore
+from core.monitoring import CoreMetrics
 
 @pytest.fixture(scope="session")
 def event_loop():
@@ -94,6 +95,7 @@ async def clean_redis():
 @pytest.fixture(autouse=True)
 def clean_metrics():
     """Clean Prometheus metrics before each test."""
+    CoreMetrics.reset()
     for collector in list(REGISTRY._collector_to_names.keys()):
         REGISTRY.unregister(collector)
 
@@ -116,3 +118,11 @@ async def cleanup_integration(event_loop):
     yield
     # Allow event loop to process pending tasks
     await asyncio.sleep(0.1)
+
+@pytest.fixture(autouse=True)
+def clean_registry():
+    """Clean up the Prometheus registry between tests."""
+    collectors = list(REGISTRY._collector_to_names.keys())
+    for collector in collectors:
+        REGISTRY.unregister(collector)
+    yield

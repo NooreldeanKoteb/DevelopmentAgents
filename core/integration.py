@@ -83,96 +83,52 @@ class CoreIntegration:
             raise RuntimeError(f"Core integration failed: {str(e)}")
             
     async def health_check(self) -> Dict[str, Any]:
-        """Check health of all core services."""
-        health_status = {
-            "status": "healthy",
-            "services": {},
-            "timestamp": asyncio.get_running_loop().time()
-        }
-        
+        """Check health of all services."""
         try:
+            health_status = {
+                "status": "healthy",
+                "services": {},
+                "timestamp": asyncio.get_running_loop().time()
+            }
+            
             # Check Redis
-            redis_status = {"status": "healthy"}
             try:
-                if self.redis:
-                    await self.redis.ping()
+                await self.redis.ping()
+                health_status["services"]["redis"] = {"status": "healthy"}
             except Exception as e:
-                redis_status = {
+                health_status["services"]["redis"] = {
                     "status": "unhealthy",
                     "error": str(e)
                 }
-            health_status["services"]["redis"] = redis_status
             
-            # Check MessageBroker
-            broker_status = {"status": "healthy"}
-            try:
-                if self.message_broker:
-                    queue_sizes = {
-                        name: queue.qsize() 
-                        for name, queue in self.message_broker.queues.items()
-                    }
-                    broker_status["queue_sizes"] = queue_sizes
-                    if any(size > 1000 for size in queue_sizes.values()):
-                        broker_status["status"] = "degraded"
-            except Exception as e:
-                broker_status = {
-                    "status": "unhealthy",
-                    "error": str(e)
+            # Check message broker
+            if self.message_broker:
+                queue_size = sum(len(q) for q in self.message_broker.queues.values())
+                broker_status = "degraded" if queue_size > 1000 else "healthy"
+                health_status["services"]["message_broker"] = {
+                    "status": broker_status,
+                    "queue_size": queue_size
                 }
-            health_status["services"]["message_broker"] = broker_status
             
-            # Check VectorStore
-            vector_status = {"status": "healthy"}
-            try:
-                if self.vector_store:
-                    test_embedding = [0.0] * 384
-                    await self.vector_store.search(
-                        "health_check",
-                        test_embedding,
-                        n_results=1
-                    )
-            except Exception as e:
-                vector_status = {
-                    "status": "unhealthy",
-                    "error": str(e)
-                }
-            health_status["services"]["vector_store"] = vector_status
+            # Check other services
+            health_status["services"]["vector_store"] = {
+                "status": "healthy" if self.vector_store else "unhealthy"
+            }
+            health_status["services"]["message_store"] = {
+                "status": "healthy" if self.message_store else "unhealthy"
+            }
             
-            # Check MessageStore
-            message_store_status = {"status": "healthy"}
-            try:
-                if self.message_store:
-                    await self.message_store.redis.ping()
-            except Exception as e:
-                message_store_status = {
-                    "status": "unhealthy",
-                    "error": str(e)
-                }
-            health_status["services"]["message_store"] = message_store_status
-            
-            # Update overall status
-            service_statuses = [
-                s["status"] for s in health_status["services"].values()
-            ]
-            if any(s == "unhealthy" for s in service_statuses):
+            # Determine overall status
+            service_statuses = [s["status"] for s in health_status["services"].values()]
+            if "unhealthy" in service_statuses:
                 health_status["status"] = "unhealthy"
-            elif any(s == "degraded" for s in service_statuses):
+            elif "degraded" in service_statuses:
                 health_status["status"] = "degraded"
-                
-            # Update metrics
-            if self.metrics:
-                self.metrics.message_count.labels(
-                    topic="health_check",
-                    status=health_status["status"]
-                ).inc()
-                
+            
             return health_status
             
         except Exception as e:
-            self.logger.logger.error(
-                "Health check failed",
-                extra={"error": str(e)}
-            )
+            self.logger.logger.error("Health check failed", extra={"error": str(e)})
             return {
                 "status": "unhealthy",
                 "error": str(e),

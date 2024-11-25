@@ -35,10 +35,19 @@ class OpenAIResponse(BaseModel):
     model_config = ConfigDict(
         arbitrary_types_allowed=True,
         validate_assignment=True,
-        extra='forbid'
+        extra='forbid',
+        json_encoders={
+            datetime: lambda v: v.isoformat()
+        }
     )
 
     content: Dict[str, Any]
     model: str
     usage: TokenUsage
-    created_at: datetime = Field(default_factory=datetime.now) 
+    created_at: datetime = Field(default_factory=datetime.now)
+
+    def model_dump(self, **kwargs) -> Dict[str, Any]:
+        """Override model_dump to handle datetime serialization."""
+        data = super().model_dump(**kwargs)
+        data['created_at'] = data['created_at'].isoformat()
+        return data

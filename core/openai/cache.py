@@ -13,23 +13,53 @@ class ResponseCache:
             self.settings.REDIS_URL,
             decode_responses=True
         )
-        self.ttl = timedelta(hours=24)
+        self.ttl = int(timedelta(hours=24).total_seconds())  # Convert to seconds
         
     async def get(self, key: str) -> Optional[Dict[str, Any]]:
         """Get cached response."""
         try:
-            data = await self.redis.get(f"openai:cache:{key}")
-            return json.loads(data) if data else None
-        except Exception:
+            full_key = f"openai:cache:{key}"
+            print(f"Checking cache for key: {full_key}")
+            data = await self.redis.get(full_key)
+            if data:
+                print(f"Cache hit for key: {full_key}")
+                return json.loads(data)
+            print(f"Cache miss for key: {full_key}")
+            return None
+        except Exception as e:
+            print(f"Error getting from cache: {str(e)}")
             return None
             
     async def set(self, key: str, value: Dict[str, Any]) -> None:
         """Cache a response."""
         try:
+            full_key = f"openai:cache:{key}"
+            print(f"Setting cache for key: {full_key}")
+            serialized = json.dumps(value)
             await self.redis.setex(
-                f"openai:cache:{key}",
+                full_key,
                 self.ttl,
-                json.dumps(value)
+                serialized
             )
-        except Exception:
-            pass  # Fail silently on cache errors 
+            # Verify the cache was set
+            cached = await self.redis.get(full_key)
+            if cached:
+                print(f"Successfully cached response for key: {full_key}")
+            else:
+                print(f"Failed to cache response for key: {full_key}")
+        except Exception as e:
+            print(f"Error setting cache: {str(e)}")
+            raise  # Don't fail silently anymore
+            
+    async def clear(self) -> None:
+        """Clear all cached responses."""
+        try:
+            # Get all keys matching the pattern
+            pattern = "openai:cache:*"
+            keys = await self.redis.keys(pattern)
+            if keys:
+                await self.redis.delete(*keys)
+            print(f"Cleared {len(keys)} cached responses")
+        except Exception as e:
+            print(f"Error clearing cache: {str(e)}")
+            raise

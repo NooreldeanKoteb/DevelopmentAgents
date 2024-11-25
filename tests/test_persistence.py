@@ -1,5 +1,5 @@
 import pytest
-from core.schemas import TaskSchema, ResourceSchema, TaskStatus, TaskPriority, BusinessImpact
+from core.schemas import TaskSchema, ResourceSchema, TaskStatus, TaskPriority, BusinessImpact, ResourceType, ResourceStatus
 
 @pytest.mark.asyncio
 async def test_save_and_get_task(persistence_manager):
@@ -29,19 +29,23 @@ async def test_save_and_get_task(persistence_manager):
 @pytest.mark.asyncio
 async def test_save_and_get_resource(persistence_manager):
     """Test saving and retrieving a resource."""
-    resource_data = ResourceSchema(
-        id="test-resource",
-        name="Test Resource",
-        type="agent",
-        status="active",
-        capabilities=["python", "testing"]
-    )
+    resource = {
+        "id": "test-resource",
+        "name": "Test Resource",
+        "type": ResourceType.AGENT,
+        "status": ResourceStatus.AVAILABLE,
+        "capacity": 1.0,
+        "current_usage": 0.0,
+        "limits": {},
+        "metadata": {}
+    }
     
     # Save and retrieve resource
-    await persistence_manager.save_resource(resource_data.id, resource_data)
-    retrieved = await persistence_manager.get_resource(resource_data.id)
+    await persistence_manager.save_resource(resource["id"], resource)
+    retrieved = await persistence_manager.get_resource(resource["id"])
     
     # Verify results
-    assert retrieved.id == resource_data.id
-    assert retrieved.name == resource_data.name
-    assert retrieved.status == resource_data.status 
+    assert retrieved.id == resource["id"]
+    assert retrieved.name == resource["name"]
+    assert retrieved.type == resource["type"]
+    assert retrieved.status == resource["status"] 

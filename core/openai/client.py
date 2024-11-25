@@ -29,6 +29,18 @@ class OpenAIClient:
         self.total_tokens = 0
         self.total_cost = 0.0
 
+    def _create_request(self, prompt: str, model: Optional[str], temperature: Optional[float], max_tokens: Optional[int], force_json: bool) -> OpenAIRequest:
+        """Create a standardized request object."""
+        # Add JSON formatting instruction if required
+        full_prompt = f"{prompt}\nRespond only with valid JSON." if force_json else prompt
+        
+        return OpenAIRequest(
+            model=model or self.settings.OPENAI_MODEL,
+            prompt=full_prompt,
+            temperature=temperature or self.settings.TEMPERATURE,
+            max_tokens=max_tokens or self.settings.MAX_TOKENS
+        )
+
     @monitor_operation(agent_type="openai", operation="completion")
     async def get_completion(
         self, 
@@ -40,27 +52,27 @@ class OpenAIClient:
     ) -> OpenAIResponse:
         """Get a completion from OpenAI with caching and rate limiting."""
         
-        # Prepare request
-        request = OpenAIRequest(
-            model=model or self.settings.OPENAI_MODEL,
-            temperature=temperature or self.settings.TEMPERATURE,
-            max_tokens=max_tokens or self.settings.MAX_TOKENS,
-            prompt=prompt
-        )
+        # Create standardized request
+        request = self._create_request(prompt, model, temperature, max_tokens, force_json)
+        
+        # Generate cache key
+        cache_key = request.cache_key
 
-        # Check cache
-        cached_response = await self.cache.get(request.cache_key)
+        # Debug logging
+        print(f"Cache key: {cache_key}")
+        print(f"Request params: {request.model_dump()}")
+
+        # Check cache first
+        cached_response = await self.cache.get(cache_key)
         if cached_response:
+            print("Cache hit!")
             return OpenAIResponse.model_validate(cached_response)
 
+        print("Cache miss - making API call")
         # Apply rate limiting
         await self.rate_limiter.acquire()
 
         try:
-            # Add JSON formatting instruction if required
-            if force_json:
-                prompt = f"{prompt}\nRespond only with valid JSON."
-
             # Make API call with retries
             response = await self._make_api_call_with_retry(request)
 
@@ -68,7 +80,7 @@ class OpenAIClient:
             parsed_response = self._parse_response(response)
             
             # Cache the response
-            await self.cache.set(request.cache_key, parsed_response.model_dump())
+            await self.cache.set(cache_key, parsed_response.model_dump())
 
             # Update usage metrics
             self._update_metrics(response)
@@ -79,7 +91,7 @@ class OpenAIClient:
             raise OpenAIError(
                 message=f"Error getting completion: {str(e)}",
                 code="completion_error",
-                details={"prompt": prompt}
+                details={"prompt": request.prompt}
             )
 
     async def _make_api_call_with_retry(

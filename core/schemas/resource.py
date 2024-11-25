@@ -1,28 +1,29 @@
-from typing import List, Optional, Dict, Any
-from enum import Enum
-from .base import TimestampedSchema, MetadataSchema
-from pydantic import Field
+from pydantic import BaseModel, Field, validator
+from datetime import datetime
+from typing import Dict, Optional, List
+from .enums import ResourceType, ResourceStatus
 
-class ResourceType(str, Enum):
-    CPU = "cpu"
-    MEMORY = "memory"
-    STORAGE = "storage"
-    API = "api"
-    MODEL = "model"
+class ResourceSchema(BaseModel):
+    id: str = Field(..., description="Unique identifier")
+    name: str = Field(..., description="Resource name")
+    type: ResourceType = Field(..., description="Resource type")
+    status: ResourceStatus = Field(default=ResourceStatus.AVAILABLE, description="Current status")
+    capacity: float = Field(default=1.0, ge=0.0, description="Resource capacity")
+    current_usage: float = Field(default=0.0, ge=0.0, description="Current resource usage")
+    limits: Dict[str, float] = Field(default_factory=dict, description="Resource limits")
+    allocated_to: Optional[str] = Field(default=None, description="ID of task/agent this resource is allocated to")
+    created_at: Optional[datetime] = Field(default_factory=datetime.now, description="Creation timestamp")
+    updated_at: Optional[datetime] = Field(default_factory=datetime.now, description="Last update timestamp")
+    metadata: Dict = Field(default_factory=dict, description="Additional metadata")
 
-class ResourceStatus(str, Enum):
-    AVAILABLE = "available"
-    IN_USE = "in_use"
-    DEPLETED = "depleted"
-    ERROR = "error"
+    @validator('current_usage')
+    def validate_usage(cls, v, values):
+        if 'capacity' in values and v > values['capacity']:
+            raise ValueError('Current usage cannot exceed capacity')
+        return v
 
-class ResourceSchema(TimestampedSchema, MetadataSchema):
-    """Schema for resource data."""
-    id: str
-    name: str
-    type: ResourceType
-    status: ResourceStatus = ResourceStatus.AVAILABLE
-    capacity: float = 1.0
-    current_usage: float = 0.0
-    limits: Dict[str, float] = Field(default_factory=dict)
-    allocated_to: Optional[str] = None 
+    class Config:
+        validate_assignment = True
+        json_encoders = {
+            datetime: lambda v: v.isoformat()
+        }

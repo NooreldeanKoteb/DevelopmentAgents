@@ -16,6 +16,13 @@ class MessageBroker:
         self._running = True
         self._tasks = set()
         
+    async def initialize(self) -> None:
+        """Initialize broker resources."""
+        if self._closed:
+            raise RuntimeError("Broker is closed")
+        self._running = True
+        self._tasks = set()
+    
     async def close(self):
         """Close broker and cleanup resources."""
         self._running = False

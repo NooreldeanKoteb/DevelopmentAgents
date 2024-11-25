@@ -17,6 +17,7 @@ class MessageStore:
         def datetime_handler(obj):
             if isinstance(obj, datetime):
                 return obj.isoformat()
+            return str(obj)
         return json.dumps(message, default=datetime_handler)
         
     def _deserialize_message(self, data: str) -> Dict:
@@ -34,16 +35,20 @@ class MessageStore:
     async def store_message(self, message: Message) -> None:
         """Store a message with TTL."""
         key = f"messages:{message.topic}:{message.id}"
+        serialized = self._serialize_message(message.model_dump())
+        
+        # Store the message
         await self.redis.setex(
             key,
             timedelta(days=self.retention_days),
-            self._serialize_message(message.model_dump())
+            serialized
         )
         
-        # Store in time index
+        # Store in time index with proper score
+        # Use negative timestamp to sort in descending order (newest first)
         await self.redis.zadd(
             f"message_timeline:{message.topic}",
-            {message.id: message.timestamp.timestamp()}
+            {message.id: -message.timestamp.timestamp()}
         )
         
     async def get_messages(
@@ -54,9 +59,11 @@ class MessageStore:
         limit: int = 100
     ) -> List[Message]:
         """Retrieve messages by time range."""
-        min_score = start_time.timestamp() if start_time else "-inf"
-        max_score = end_time.timestamp() if end_time else "+inf"
+        # Convert times to negative timestamps for descending order
+        max_score = -(start_time.timestamp() if start_time else float('-inf'))
+        min_score = -(end_time.timestamp() if end_time else float('inf'))
         
+        # Get message IDs from the sorted set
         message_ids = await self.redis.zrangebyscore(
             f"message_timeline:{topic}",
             min_score,
@@ -67,8 +74,11 @@ class MessageStore:
         
         messages = []
         for msg_id in message_ids:
+            msg_id = msg_id.decode() if isinstance(msg_id, bytes) else msg_id
             data = await self.redis.get(f"messages:{topic}:{msg_id}")
             if data:
-                messages.append(Message.model_validate(self._deserialize_message(data)))
+                data = data.decode() if isinstance(data, bytes) else data
+                message_data = self._deserialize_message(data)
+                messages.append(Message.model_validate(message_data))
                 
         return messages 

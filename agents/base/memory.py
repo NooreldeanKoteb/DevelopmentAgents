@@ -8,9 +8,33 @@ class Memory:
     def __init__(self, redis_url: str = "redis://localhost:6379/0"):
         """Initialize memory with Redis connection."""
         self.redis = redis.from_url(redis_url)
+        self._initialized = False
+        
+    async def initialize(self) -> None:
+        """Initialize memory system and test connection."""
+        if self._initialized:
+            return
+            
+        try:
+            await self.redis.ping()
+            self._initialized = True
+        except Exception as e:
+            raise MemoryError(f"Failed to initialize memory: {str(e)}")
+            
+    async def cleanup(self) -> None:
+        """Cleanup memory resources."""
+        try:
+            if self._initialized:
+                await self.redis.close()
+                self._initialized = False
+        except Exception as e:
+            raise MemoryError(f"Failed to cleanup memory: {str(e)}")
         
     async def store(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
         """Store a value in memory."""
+        if not self._initialized:
+            await self.initialize()
+            
         try:
             # Serialize dict/complex objects to JSON
             if isinstance(value, (dict, list)):
@@ -21,6 +45,9 @@ class Memory:
             
     async def retrieve(self, key: str, raise_error: bool = False) -> Any:
         """Retrieve a value from memory."""
+        if not self._initialized:
+            await self.initialize()
+            
         try:
             value = await self.redis.get(key)
             if value is None and raise_error:
@@ -38,6 +65,9 @@ class Memory:
             
     async def clear(self, pattern: Optional[str] = None) -> None:
         """Clear memories matching pattern or all if no pattern."""
+        if not self._initialized:
+            await self.initialize()
+            
         try:
             if pattern:
                 keys = await self.redis.keys(pattern)
@@ -50,6 +80,9 @@ class Memory:
             
     async def list_memories(self, pattern: str = "*") -> List[Dict[str, Any]]:
         """List all memory keys matching pattern."""
+        if not self._initialized:
+            await self.initialize()
+            
         try:
             keys = await self.redis.keys(pattern)
             memories = []

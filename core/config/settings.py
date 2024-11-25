@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     
     # Environment
     ENVIRONMENT: Environment = Environment.DEVELOPMENT
-    DEBUG: bool = True
+    DEBUG: bool = False
     
     # OpenAI
     OPENAI_API_KEY: str
@@ -34,6 +34,7 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
+        env_file_encoding = 'utf-8'
         case_sensitive = True
 
     def validate_integration(self) -> bool:

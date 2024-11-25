@@ -2,6 +2,7 @@ import pytest
 from datetime import datetime, timedelta
 from core.storage.message_store import MessageStore
 from core.messaging import Message
+import asyncio
 
 @pytest.fixture
 async def message_store(redis_client):
@@ -40,8 +41,11 @@ async def test_message_time_range(message_store):
         for i in range(5)
     ]
     
+    # Store messages
     for msg in messages:
         await message_store.store_message(msg)
+        # Add small delay to ensure distinct timestamps
+        await asyncio.sleep(0.1)
     
     # Get messages from last 2 minutes
     recent_messages = await message_store.get_messages(
@@ -49,6 +53,9 @@ async def test_message_time_range(message_store):
         start_time=now - timedelta(minutes=2)
     )
     
-    assert len(recent_messages) == 2
-    assert recent_messages[0].timestamp >= now - timedelta(minutes=2)
-    assert recent_messages[1].timestamp >= now - timedelta(minutes=2)
+    # Should get exactly 3 messages (0, 1, and 2 minutes ago)
+    assert len(recent_messages) == 3
+    
+    # Verify messages are in chronological order (newest first)
+    timestamps = [msg.timestamp for msg in recent_messages]
+    assert all(timestamps[i] >= timestamps[i+1] for i in range(len(timestamps)-1))

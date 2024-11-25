@@ -1,6 +1,6 @@
 import pytest
 from datetime import datetime
-from pydantic import ValidationError
+from pydantic import ValidationError, ConfigDict
 from core.schemas.base import (
     BaseSchema,
     TimestampedSchema,
@@ -13,11 +13,15 @@ def test_base_schema():
     class TestSchema(BaseSchema):
         name: str
         value: int
+        id: str = "test-id"
+
+        model_config = ConfigDict(extra='forbid')
 
     # Test valid data
     data = TestSchema(name="test", value=1)
     assert data.name == "test"
     assert data.value == 1
+    assert data.id == "test-id"
 
     # Test extra field rejection
     with pytest.raises(ValidationError):
@@ -27,6 +31,7 @@ def test_timestamped_schema():
     """Test TimestampedSchema functionality."""
     class TestTimestamped(TimestampedSchema):
         name: str
+        id: str = "test-id"
 
     # Test automatic timestamp generation
     data = TestTimestamped(name="test")
@@ -47,6 +52,7 @@ def test_metadata_schema():
     """Test MetadataSchema functionality."""
     class TestMetadata(MetadataSchema):
         name: str
+        id: str = "test-id"
 
     # Test empty metadata
     data = TestMetadata(name="test")

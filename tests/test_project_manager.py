@@ -1,8 +1,9 @@
 from unittest.mock import AsyncMock
 import pytest
+from datetime import datetime
 from agents.project_manager.agent import ProjectManagerAgent
-from agents.project_manager.models import TaskSchema
-from agents.project_manager.enums import TaskStatus, Priority, BusinessImpact
+from core.schemas import TaskSchema
+from core.schemas.enums import TaskStatus, TaskPriority, BusinessImpact
 from agents.base.message import Message
 
 @pytest.mark.asyncio
@@ -19,9 +20,9 @@ async def test_process_message(sample_message):
         name="Test Task",
         description="Test Description",
         status=TaskStatus.PENDING,
-        priority=Priority.HIGH,
+        priority=TaskPriority.HIGH,
         business_impact=BusinessImpact.MEDIUM,
-        estimated_duration="2.0",
+        estimated_duration=2.0,
         phase="phase-1",
         dependencies=[]
     )
@@ -29,9 +30,11 @@ async def test_process_message(sample_message):
     mock_resource_manager.get_resources.return_value = []
     
     agent = ProjectManagerAgent(
-        task_manager=mock_task_manager,
-        resource_manager=mock_resource_manager,
-        planner=mock_planner
+        name="Test Project Manager",
+        agent_type="project_manager",
+        task_service=mock_task_manager,
+        resource_service=mock_resource_manager,
+        planner_service=mock_planner
     )
     
     message = Message(

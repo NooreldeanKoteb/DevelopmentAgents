@@ -40,12 +40,19 @@ def test_resource_schema():
 
 def test_resource_validation():
     """Test resource validation rules."""
-    # Test invalid usage
+    # Test invalid usage - current_usage > capacity
     with pytest.raises(ValidationError):
         ResourceSchema(
             id="test-resource",
             name="Test Resource",
             type=ResourceType.CPU,
-            current_usage=2.0,
-            capacity=1.0
-        ) 
+            current_usage=2.0,  # Greater than capacity
+            capacity=1.0,
+            limits={"max_usage": 1.0}
+        )
+
+    # Test missing required fields
+    with pytest.raises(ValidationError):
+        ResourceSchema(
+            type=ResourceType.CPU  # Missing id and name
+        )

@@ -1,0 +1,108 @@
+# RAG System Components
+
+knowledge_sources:
+  - type: code_repositories
+    formats: [.py, .js, .ts, .java, .cpp]
+    processing:
+      - extract_functions
+      - extract_classes
+      - extract_comments
+      
+  - type: documentation
+    formats: [.md, .rst, .txt, .pdf]
+    processing:
+      - extract_text
+      - maintain_structure
+      - preserve_formatting
+      
+  - type: agent_conversations
+    formats: [json]
+    processing:
+      - extract_context
+      - extract_decisions
+      - extract_outcomes
+      
+  - type: system_logs
+    formats: [.log, json]
+    processing:
+      - extract_errors
+      - extract_patterns
+      - extract_metrics
+
+preprocessing:
+  chunking:
+    methods:
+      - sentence_splitting
+      - paragraph_splitting
+      - semantic_splitting
+    max_chunk_size: 1000
+    overlap: 100
+    
+  embedding:
+    model: text-embedding-3-large
+    dimensions: 3072
+    batch_size: 100
+    cache_strategy: LRU
+
+vector_store:
+  engine: chromadb
+  collections:
+    - name: code_knowledge
+      metadata: [language, framework, patterns]
+    - name: technical_docs
+      metadata: [domain, category, date]
+    - name: agent_knowledge
+      metadata: [agent_type, decision_type, outcome]
+    - name: system_knowledge
+      metadata: [component, event_type, severity]
+
+retrieval:
+  search_strategies:
+    - semantic_search
+    - hybrid_search
+    - filter_by_metadata
+  ranking:
+    - relevance_score
+    - recency
+    - usage_frequency
+  reranking:
+    model: custom_reranker
+    features: [semantic_similarity, context_match, freshness]
+
+prompt_enhancement:
+  template: |
+    Based on the following relevant context:
+    {retrieved_context}
+    
+    And considering these similar cases:
+    {similar_cases}
+    
+    With these previous outcomes:
+    {historical_outcomes}
+    
+    Respond to the current task:
+    {current_task}
+
+knowledge_update:
+  triggers:
+    - new_agent_decision
+    - task_completion
+    - error_occurrence
+    - user_feedback
+  update_strategies:
+    - append_new
+    - update_existing
+    - merge_similar
+    - archive_outdated
+
+monitoring:
+  metrics:
+    - retrieval_accuracy
+    - context_relevance
+    - response_quality
+    - knowledge_freshness
+  feedback_loop:
+    - track_usage
+    - track_outcomes
+    - adjust_rankings
+    - update_embeddings

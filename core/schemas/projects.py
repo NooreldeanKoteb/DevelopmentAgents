@@ -4,7 +4,7 @@ from datetime import datetime
 from pydantic import Field
 
 from .base import BaseSchema
-from .tasks import TaskSchema
+from .task import TaskSchema
 from .resources import ResourceSchema
 
 class ProjectStatus(str, Enum):

@@ -16,7 +16,7 @@ def test_task_schema():
         status=TaskStatus.PENDING,
         priority=TaskPriority.MEDIUM,
         business_impact=BusinessImpact.LOW,
-        estimated_duration="1.0",
+        estimated_duration=1.0,
         phase="testing"
     )
     assert task.id == "test-task"
@@ -27,7 +27,11 @@ def test_task_status_transitions():
     """Test task status transitions."""
     task = TaskSchema(
         id="test-task",
-        name="Test Task"
+        name="Test Task",
+        description="Test description",
+        priority=TaskPriority.MEDIUM,
+        business_impact=BusinessImpact.LOW,
+        estimated_duration=1.0
     )
     
     # Test valid transitions
@@ -35,4 +39,4 @@ def test_task_status_transitions():
     assert task.status == TaskStatus.IN_PROGRESS
     
     task.status = TaskStatus.COMPLETED
-    assert task.status == TaskStatus.COMPLETED 
+    assert task.status == TaskStatus.COMPLETED

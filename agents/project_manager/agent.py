@@ -1,6 +1,7 @@
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 import asyncio
+import uuid
 
 from agents.base import BaseAgent, AgentError
 from core.messaging import Message
@@ -14,23 +15,22 @@ from .resource_manager import ResourceManager
 from agents.project_manager.persistence import PersistenceManager
 
 class ProjectManagerAgent(BaseAgent):
-    """Agent responsible for project management and coordination."""
+    """Agent responsible for managing project resources and tasks."""
     
-    def __init__(self, name: str = "ProjectManager"):
+    def __init__(
+        self,
+        name: str,
+        agent_type: str = "project_manager",
+        **kwargs
+    ):
         super().__init__(
+            agent_id=kwargs.get('agent_id', str(uuid.uuid4())),
             name=name,
-            agent_type=AgentType.PROJECT_MANAGER,
-            capabilities=[
-                "project_planning",
-                "task_management",
-                "resource_allocation",
-                "agent_coordination",
-                "progress_monitoring"
-            ]
+            agent_type=agent_type
         )
-        self.planner: Optional[ProjectPlanner] = None
-        self.task_manager: Optional[TaskManager] = None
-        self.resource_manager: Optional[ResourceManager] = None
+        self.task_service = kwargs.get('task_service')
+        self.resource_service = kwargs.get('resource_service')
+        self.planner_service = kwargs.get('planner_service')
         
     async def initialize(self) -> None:
         """Initialize project manager components."""
@@ -261,3 +261,9 @@ class ProjectManagerAgent(BaseAgent):
             ))
         else:
             raise AgentError(f"Unknown task type: {task_type}")
+        
+    async def handle_error(self, error: Exception) -> None:
+        """Handle agent errors."""
+        self.logger.logger.error(f"Error in ProjectManager: {str(error)}")
+        self.metrics.error_count.inc()
+        # Add any specific error handling logic here

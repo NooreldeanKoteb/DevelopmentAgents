@@ -1,41 +1,60 @@
-from .base import BaseSchema
-from .tasks import TaskSchema, TaskStatus, TaskPriority, BusinessImpact
-from .agents import AgentSchema, AgentStatus, AgentType
-from .resources import ResourceSchema, ResourceStatus, ResourceType
-from .projects import ProjectSchema, ProjectStatus, ProjectPhase
-from .messages import (
-    MessageSchema, MessageType, MessagePriority, 
-    MessageStatus
+from .base import (
+    BaseSchema,
+    TimestampedSchema,
+    MetadataSchema,
+    ErrorSchema
+)
+
+from .agents import (
+    AgentSchema,
+    AgentStatus,
+    AgentType
+)
+
+from .task import (
+    TaskSchema,
+    TaskStatus,
+    TaskPriority,
+    BusinessImpact
+)
+
+from .resources import (
+    ResourceSchema,
+    ResourceType,
+    ResourceStatus
+)
+
+from .projects import (
+    ProjectSchema,
+    ProjectStatus,
+    ProjectPhase
 )
 
 __all__ = [
     # Base schemas
     'BaseSchema',
+    'TimestampedSchema',
+    'MetadataSchema',
+    'ErrorSchema',
     
-    # Task schemas
+    # Agent schemas and enums
+    'AgentSchema',
+    'AgentStatus',
+    'AgentType',
+    
+    # Task schemas and enums
     'TaskSchema',
     'TaskStatus',
     'TaskPriority',
     'BusinessImpact',
     
-    # Agent schemas
-    'AgentSchema',
-    'AgentStatus',
-    'AgentType',
-    
-    # Resource schemas
+    # Resource schemas and enums
     'ResourceSchema',
-    'ResourceStatus',
     'ResourceType',
+    'ResourceStatus',
     
-    # Project schemas
+    # Project schemas and enums
     'ProjectSchema',
     'ProjectStatus',
-    'ProjectPhase',
-    
-    # Message schemas
-    'MessageSchema',
-    'MessageType',
-    'MessagePriority',
-    'MessageStatus',
+    'ProjectPhase'
 ] 

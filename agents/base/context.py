@@ -13,6 +13,19 @@ class Context:
         self.state = {}
         self.last_message = None
         self.last_updated = datetime.utcnow()
+        self._initialized = False
+        
+    async def initialize(self) -> None:
+        """Initialize context system."""
+        if self._initialized:
+            return
+        self.clear()
+        self._initialized = True
+        
+    async def cleanup(self) -> None:
+        """Cleanup context resources."""
+        self.clear()
+        self._initialized = False
         
     def get_history(self, limit: Optional[int] = None, topic: Optional[str] = None) -> List[Dict]:
         """Get message history with optional limit and topic filter."""

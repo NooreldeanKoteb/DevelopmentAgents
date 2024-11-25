@@ -3,7 +3,10 @@ from core.config import Settings, get_settings
 
 def test_settings_defaults():
     """Test default settings values."""
-    settings = Settings(OPENAI_API_KEY="dummy-key")  # Required field
+    settings = Settings(
+        OPENAI_API_KEY="dummy-key",
+        _env_file=None  # Ignore any .env file
+    )
     
     assert settings.ENVIRONMENT == "development"
     assert settings.DEBUG is False

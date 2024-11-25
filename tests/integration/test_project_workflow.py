@@ -1,6 +1,12 @@
 import pytest
-from core.schemas import TaskSchema, TaskStatus, TaskPriority, BusinessImpact, ResourceSchema
-from agents.project_manager.enums import TaskStatus, Priority, BusinessImpact
+from core.schemas.enums import (
+    TaskStatus,
+    TaskPriority,
+    BusinessImpact,
+    ResourceType,
+    ResourceStatus
+)
+from core.schemas import TaskSchema, ResourceSchema
 from datetime import datetime
 from agents.project_manager.models import ResourceData
 from prometheus_client import REGISTRY
@@ -24,34 +30,35 @@ class TestProjectWorkflow:
             status=TaskStatus.PENDING,
             priority=TaskPriority.HIGH,
             business_impact=BusinessImpact.HIGH,
-            estimated_duration="1.5",
+            estimated_duration=1.5,
             phase="phase-1"
         )
         
         result = await task_manager.create_task(task.model_dump())
-        assert result.priority == Priority.HIGH
+        assert result.priority == TaskPriority.HIGH
         assert result.status == TaskStatus.PENDING
         
-        tasks = await task_manager.get_tasks_by_priority(Priority.HIGH)
+        tasks = await task_manager.get_tasks_by_priority(TaskPriority.HIGH)
         assert len(tasks) > 0
 
     @pytest.mark.asyncio
     async def test_resource_allocation_workflow(self, resource_manager, persistence_manager):
-        resource_data = ResourceData(
-            id="resource-1",
+        resource_data = ResourceSchema(
+            id="test-resource",
             name="Test Resource",
-            type="agent",
-            status="active",
-            capabilities=["python", "testing"],
-            current_load=0.0,
+            type=ResourceType.AGENT,
+            status=ResourceStatus.AVAILABLE,
             capacity=1.0,
-            performance_score=0.8
+            current_usage=0.0,
+            limits={},
+            metadata={},
+            capabilities=["python", "testing"]
         )
         
         resource_manager.persistence = persistence_manager
-        result = await resource_manager.allocate_resource(resource_data.model_dump())
+        result = await resource_manager.allocate_resource(resource_data.id, resource_data)
         
         assert result["action_type"] == "resource_allocation"
         assert result["status"] == "success"
-        assert result["resource_id"] == "resource-1"
+        assert result["resource_id"] == "test-resource"
   

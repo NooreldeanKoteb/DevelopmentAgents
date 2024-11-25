@@ -1,7 +1,7 @@
 from typing import List, Dict, Any, Optional
 import chromadb
 from chromadb.config import Settings
-from core.config import get_settings
+import uuid
 
 class VectorStore:
     """Manages vector storage and retrieval for embeddings."""
@@ -36,7 +36,9 @@ class VectorStore:
     ) -> None:
         """Store text embeddings with optional metadata."""
         collection = self.client.get_or_create_collection(collection_name)
+        ids = [str(uuid.uuid4()) for _ in texts]
         collection.add(
+            ids=ids,
             embeddings=embeddings,
             documents=texts,
             metadatas=metadata or [{} for _ in texts]

@@ -1,17 +1,19 @@
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Union
 from datetime import datetime
 import asyncio
 from enum import Enum
 from pydantic import BaseModel
 from agents.project_manager.persistence import PersistenceManager
 
-from core.schemas import (
+from core.schemas.agent import AgentStatus
+from core.schemas.enums import (
     TaskStatus,
+    ResourceStatus,
+    ResourceType
+)
+from core.schemas import (
     TaskSchema,
-    ResourceSchema,
-    AgentSchema,
-    AgentStatus,
-    ResourceStatus
+    ResourceSchema
 )
 from .errors import ResourceManagementError
 
@@ -166,3 +168,61 @@ class ResourceManager:
                 for resource in allocations[task_id]["resources"]:
                     resource.status = ResourceStatus.AVAILABLE
                     resource.allocated_to = None
+                    
+    async def create_project_plan(self, project_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Create a project plan with resource allocation."""
+        try:
+            tasks = [TaskSchema.model_validate(task) for task in project_data["tasks"]]
+            
+            # Calculate critical path
+            critical_path = self._calculate_critical_path(tasks)
+            
+            # Create plan
+            plan = {
+                "name": project_data["name"],
+                "tasks": [task.model_dump() for task in tasks],
+                "critical_path": critical_path,
+                "estimated_duration": sum(task.estimated_duration for task in tasks),
+                "created_at": datetime.now().isoformat()
+            }
+            
+            return plan
+            
+        except Exception as e:
+            raise ResourceManagementError(f"Failed to create project plan: {str(e)}")
+            
+    def _calculate_critical_path(self, tasks: List[TaskSchema]) -> List[str]:
+        """Calculate the critical path through tasks."""
+        # Simple implementation - just return tasks in dependency order
+        ordered_tasks = []
+        remaining_tasks = tasks.copy()
+        
+        while remaining_tasks:
+            for task in remaining_tasks[:]:
+                if all(dep in [t.id for t in ordered_tasks] for dep in task.dependencies):
+                    ordered_tasks.append(task)
+                    remaining_tasks.remove(task)
+                    
+        return [task.id for task in ordered_tasks]
+            
+    async def allocate_resource(self, resource_id: str, resource_data: Union[ResourceSchema, Dict[str, Any]]) -> Dict[str, Any]:
+        """Allocate a new resource."""
+        try:
+            # Validate and create resource
+            if isinstance(resource_data, dict):
+                resource = ResourceSchema.model_validate(resource_data)
+            else:
+                resource = resource_data
+            
+            # Save to persistence
+            await self.persistence.save_resource(resource_id, resource)
+            
+            return {
+                "action_type": "resource_allocation",
+                "status": "success",
+                "resource_id": resource_id,
+                "timestamp": datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            raise ResourceManagementError(f"Failed to allocate resource: {str(e)}")

@@ -1,47 +1,36 @@
-from typing import Dict, Any, List
+from typing import Dict, Any
 from datetime import datetime
-from core.schemas import TaskPriority
+from core.schemas import TaskSchema
+from core.schemas.enums import TaskPriority, BusinessImpact
 
-def calculate_task_priority(task: Dict[str, Any]) -> str:
-    """Calculate task priority based on various factors."""
-    score = 0
+def calculate_priority_score(task: TaskSchema) -> float:
+    """Calculate priority score based on task attributes."""
+    priority_weights = {
+        TaskPriority.HIGH: 5.0,
+        TaskPriority.MEDIUM: 3.0,
+        TaskPriority.LOW: 1.0
+    }
     
-    # Duration score (0-3 points)
-    duration = task.get("estimated_duration", 0)
-    if duration >= 5.0:
-        score += 3
-    elif duration >= 3.0:
-        score += 2
-    elif duration > 0:
-        score += 1
-        
-    # Dependencies score (0-3 points)
-    dependencies = task.get("dependencies", [])
-    if len(dependencies) >= 3:
-        score += 3
-    elif len(dependencies) >= 1:
-        score += 2
-        
-    # Business impact score (0-3 points)
-    impact = task.get("business_impact", "low")
-    if impact == "high":
-        score += 3
-    elif impact == "medium":
-        score += 2
-    elif impact == "low":
-        score += 1
-        
-    # Status score (0-2 points)
-    if task.get("status") == "blocked":
-        score += 2
-        
-    # Convert score to priority (max score: 11)
-    if score >= 10:
-        return TaskPriority.HIGH.value
-    elif score >= 6:
-        return TaskPriority.MEDIUM.value
+    impact_weights = {
+        BusinessImpact.HIGH: 3.0,
+        BusinessImpact.MEDIUM: 2.0,
+        BusinessImpact.LOW: 1.0
+    }
+    
+    return (priority_weights[task.priority] * 
+            impact_weights[task.business_impact])
+
+def calculate_task_priority(task: TaskSchema) -> TaskPriority:
+    """Calculate overall task priority."""
+    score = calculate_priority_score(task)
+    
+    if score >= 8.0:
+        return TaskPriority.HIGH
+    elif score >= 4.0:
+        return TaskPriority.MEDIUM
     else:
-        return TaskPriority.LOW.value 
+        return TaskPriority.LOW
+
 class PriorityCalculator:
     @staticmethod
     def calculate_deadline_score(minutes: int) -> float:
@@ -90,17 +79,17 @@ class PriorityCalculator:
         return 40
 
     @staticmethod
-    def score_to_priority(score: float) -> str:
+    def score_to_priority(score: float) -> TaskPriority:
         """Convert numerical score to priority level."""
         if score >= 95:
-            return TaskPriority.CRITICAL.value
+            return TaskPriority.HIGH
         elif score >= 70:
-            return TaskPriority.HIGH.value
+            return TaskPriority.HIGH
         elif score >= 40:
-            return TaskPriority.MEDIUM.value
-        return TaskPriority.LOW.value
+            return TaskPriority.MEDIUM
+        return TaskPriority.LOW
 
-    def calculate_task_priority(self, task: Dict[str, Any]) -> str:
+    def calculate_priority(self, task: Dict[str, Any]) -> TaskPriority:
         """Calculate overall task priority."""
         score = 0
         

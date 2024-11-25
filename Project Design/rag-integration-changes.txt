@@ -1,0 +1,188 @@
+# RAG System Integration Changes
+
+## Core Infrastructure Changes Required:
+
+1. Vector Database Layer
+- Add ChromaDB alongside existing Redis
+- Create collections for different knowledge types
+- Implement embedding storage and retrieval
+- Set up metadata management
+
+2. OpenAI Client Enhancement
+- Add embedding API integration
+- Modify prompt construction to include RAG context
+- Enhance response processing for knowledge extraction
+- Add context window management
+
+3. Knowledge Management
+- Add document processing pipeline
+- Implement chunking strategies
+- Create embedding generation system
+- Add knowledge update mechanisms
+
+4. Agent Base Class Modifications
+- Add RAG context retrieval methods
+- Enhance decision-making with historical context
+- Add knowledge contribution methods
+- Modify message processing to include context
+
+## Development Prompts for Cursor
+
+### 1. Vector Store Setup
+```
+Create a vector store management system with these requirements:
+1. Implement ChromaDB integration
+2. Create separate collections for:
+   - Code knowledge
+   - Technical documentation
+   - Agent interactions
+   - System events
+3. Add metadata management
+4. Implement efficient querying
+5. Add data persistence
+6. Include backup mechanisms
+
+Reference existing data structures and ensure compatibility with current JSON schemas.
+```
+
+### 2. Knowledge Processing Pipeline
+```
+Create a knowledge processing system that:
+1. Processes various input types:
+   - Code files
+   - Documentation
+   - Agent conversations
+   - System logs
+2. Implements chunking strategies:
+   - Semantic splitting
+   - Overlap handling
+   - Size optimization
+3. Generates embeddings using OpenAI
+4. Manages processing queue
+5. Handles batch processing
+
+Ensure integration with existing message bus and storage systems.
+```
+
+### 3. RAG-Enhanced Base Agent
+```
+Modify the base agent class to:
+1. Add RAG context retrieval:
+   - Similar historical cases
+   - Relevant knowledge
+   - Past outcomes
+2. Enhance message processing:
+   - Context inclusion
+   - Knowledge extraction
+   - Update triggers
+3. Implement knowledge contribution
+4. Add context management
+5. Update decision making process
+
+Maintain compatibility with existing agent communication patterns.
+```
+
+### 4. Context-Aware OpenAI Client
+```
+Enhance the OpenAI client to:
+1. Include RAG context in prompts:
+   - Historical context
+   - Similar cases
+   - Best practices
+2. Manage context window:
+   - Priority ranking
+   - Relevance scoring
+   - Size optimization
+3. Process responses for knowledge extraction
+4. Handle embedding generation
+5. Implement caching for embeddings
+
+Ensure compatibility with existing JSON response formats.
+```
+
+### 5. Knowledge Update System
+```
+Create a knowledge update system that:
+1. Monitors for new knowledge:
+   - Agent decisions
+   - Task outcomes
+   - System events
+   - User feedback
+2. Processes updates:
+   - Validates new information
+   - Updates embeddings
+   - Manages conflicts
+   - Handles versioning
+3. Implements feedback loops
+4. Updates relevance scores
+5. Maintains knowledge coherence
+
+Integrate with existing monitoring and logging systems.
+```
+
+### 6. Query Enhancement System
+```
+Create a query processing system that:
+1. Enhances search queries with:
+   - Context awareness
+   - Metadata filtering
+   - Relevance ranking
+2. Implements hybrid search:
+   - Semantic search
+   - Keyword matching
+   - Metadata filtering
+3. Handles result ranking
+4. Manages query cache
+5. Optimizes performance
+
+Ensure compatibility with existing agent query patterns.
+```
+
+### 7. Monitoring Integration
+```
+Enhance the monitoring system to track:
+1. RAG performance metrics:
+   - Retrieval accuracy
+   - Context relevance
+   - Response quality
+2. Knowledge base health:
+   - Freshness
+   - Coverage
+   - Usage patterns
+3. System performance:
+   - Query latency
+   - Embedding generation time
+   - Storage usage
+4. Add dashboards and alerts
+5. Implement feedback collection
+
+Integrate with existing monitoring infrastructure.
+```
+
+Key Integration Points:
+1. Vector store connects to existing storage layer
+2. Enhanced OpenAI client maintains current JSON contracts
+3. Knowledge processing integrates with message bus
+4. Monitoring extends current metrics system
+5. All agents inherit RAG capabilities from base class
+
+Development Approach:
+1. Implement core RAG infrastructure
+2. Modify base agent class
+3. Enhance OpenAI client
+4. Update each agent incrementally
+5. Add monitoring and optimization
+6. Test and validate improvements
+
+Would you like me to:
+1. Add more specific integration details?
+2. Create additional prompts?
+3. Elaborate on any component?
+4. Provide more implementation guidance?
+
+The RAG integration enhances the system while maintaining:
+- Existing communication patterns
+- JSON message structure
+- Agent autonomy
+- System reliability
+- Performance standards

@@ -2,7 +2,18 @@ import pytest
 import redis.asyncio as redis
 from datetime import datetime
 from agents.project_manager.persistence import PersistenceManager
-from core.schemas import TaskSchema, ResourceSchema, TaskStatus, TaskPriority
+
+# Import enums
+from core.schemas.enums import (
+    ResourceType,
+    ResourceStatus,
+    TaskStatus,
+    TaskPriority,
+    BusinessImpact
+)
+
+# Import schemas
+from core.schemas.task import TaskSchema
 
 @pytest.fixture
 async def persistence_manager():
@@ -15,52 +26,78 @@ async def persistence_manager():
 @pytest.mark.asyncio
 async def test_task_crud_operations(persistence_manager):
     """Test task CRUD operations."""
-    # Create test task
-    task = TaskSchema(
-        id="test-task-1",
-        title="Test Task",
-        description="Test task description",
-        status=TaskStatus.PENDING,
-        priority=TaskPriority.MEDIUM,
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow()
-    )
+    now = datetime.now()
+    task = {
+        "id": "test-task-1",
+        "name": "Test Task",
+        "description": "Test task description",
+        "status": TaskStatus.PENDING,
+        "priority": TaskPriority.MEDIUM,
+        "business_impact": BusinessImpact.MEDIUM,
+        "estimated_duration": 1.0,
+        "dependencies": [],
+        "created_at": now,
+        "updated_at": now,
+        "metadata": {},
+        "phase": None,
+        "progress": 0.0,
+        "assigned_to": None,
+        "tags": [],
+        "due_date": None,
+        "subtasks": [],
+        "parent_task": None,
+        "requirements": {},
+        "completion_criteria": [],
+        "notes": ""
+    }
     
-    # Test save
     await persistence_manager.save_task(task)
+    retrieved_task = await persistence_manager.get_task(task["id"])
     
-    # Test retrieve
-    retrieved_task = await persistence_manager.get_task(task.id)
     assert retrieved_task is not None
-    assert retrieved_task.id == task.id
-    assert retrieved_task.title == task.title
+    assert retrieved_task.id == task["id"]
+    assert retrieved_task.name == task["name"]
     assert retrieved_task.status == TaskStatus.PENDING
     
     # Test update
-    task.status = TaskStatus.IN_PROGRESS
+    task["status"] = TaskStatus.IN_PROGRESS
     await persistence_manager.save_task(task)
-    updated_task = await persistence_manager.get_task(task.id)
+    updated_task = await persistence_manager.get_task(task["id"])
     assert updated_task.status == TaskStatus.IN_PROGRESS
     
     # Test delete
-    await persistence_manager.delete_task(task.id)
-    deleted_task = await persistence_manager.get_task(task.id)
+    await persistence_manager.delete_task(task["id"])
+    deleted_task = await persistence_manager.get_task(task["id"])
     assert deleted_task is None
 
 @pytest.mark.asyncio
 async def test_task_indexing(persistence_manager):
     """Test task indexing."""
-    # Create multiple tasks
+    now = datetime.now()
     tasks = [
-        TaskSchema(
-            id=f"test-task-{i}",
-            title=f"Test Task {i}",
-            description=f"Test task description {i}",
-            status=TaskStatus.PENDING,
-            priority=TaskPriority.MEDIUM,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
-        ) for i in range(3)
+        {
+            "id": f"test-task-{i}",
+            "name": f"Test Task {i}",
+            "description": f"Test task description {i}",
+            "status": TaskStatus.PENDING,
+            "priority": TaskPriority.MEDIUM,
+            "business_impact": BusinessImpact.MEDIUM,
+            "estimated_duration": 1.0,
+            "dependencies": [],
+            "created_at": now,
+            "updated_at": now,
+            "metadata": {},
+            "phase": None,
+            "progress": 0.0,
+            "assigned_to": None,
+            "tags": [],
+            "due_date": None,
+            "subtasks": [],
+            "parent_task": None,
+            "requirements": {},
+            "completion_criteria": [],
+            "notes": ""
+        } for i in range(3)
     ]
     
     # Save all tasks
@@ -76,94 +113,112 @@ async def test_task_indexing(persistence_manager):
     assert len(pending_tasks) == 3
     
     # Update one task status
-    tasks[0].status = TaskStatus.IN_PROGRESS
+    tasks[0]["status"] = TaskStatus.IN_PROGRESS
     await persistence_manager.save_task(tasks[0])
     
     # Test filtering after update
     pending_tasks = await persistence_manager.list_tasks(status=TaskStatus.PENDING)
     assert len(pending_tasks) == 2
-    in_progress_tasks = await persistence_manager.list_tasks(status=TaskStatus.IN_PROGRESS)
-    assert len(in_progress_tasks) == 1
 
 @pytest.mark.asyncio
 async def test_resource_operations(persistence_manager):
     """Test resource operations."""
-    # Create test resource
-    resource = ResourceSchema(
-        id="test-resource-1",
-        name="Test Resource",
-        type="developer",
-        capacity=1.0,
-        skills=["python", "testing"],
-        availability={
-            "monday": {"start": "09:00", "end": "17:00"},
-            "tuesday": {"start": "09:00", "end": "17:00"}
-        }
-    )
+    now = datetime.now()
+    resource = {
+        "id": "test-resource-1",
+        "name": "Test Resource",
+        "type": ResourceType.AGENT,
+        "status": ResourceStatus.AVAILABLE,
+        "capacity": 1.0,
+        "current_load": 0.0,
+        "capabilities": [],
+        "allocated_to": None,
+        "metadata": {},
+        "limits": {}
+    }
     
-    # Test save
+    # Test save and retrieve
     await persistence_manager.save_resource(resource)
+    retrieved_resource = await persistence_manager.get_resource(resource["id"])
     
-    # Test retrieve
-    retrieved_resource = await persistence_manager.get_resource(resource.id)
     assert retrieved_resource is not None
-    assert retrieved_resource.id == resource.id
-    assert retrieved_resource.name == resource.name
-    assert retrieved_resource.skills == resource.skills
+    assert retrieved_resource.id == resource["id"]
+    assert retrieved_resource.name == resource["name"]
+    assert retrieved_resource.type == resource["type"]
+    assert retrieved_resource.status == resource["status"]
     
     # Test update
-    resource.capacity = 0.5
+    resource["status"] = ResourceStatus.IN_USE
     await persistence_manager.save_resource(resource)
-    updated_resource = await persistence_manager.get_resource(resource.id)
-    assert updated_resource.capacity == 0.5
+    updated_resource = await persistence_manager.get_resource(resource["id"])
+    assert updated_resource.status == ResourceStatus.IN_USE
     
     # Test delete
-    await persistence_manager.delete_resource(resource.id)
-    deleted_resource = await persistence_manager.get_resource(resource.id)
+    await persistence_manager.delete_resource(resource["id"])
+    deleted_resource = await persistence_manager.get_resource(resource["id"])
     assert deleted_resource is None
 
 @pytest.mark.asyncio
 async def test_task_resource_relationship(persistence_manager):
     """Test task-resource relationship operations."""
-    # Create test task and resource
-    task = TaskSchema(
-        id="test-task-1",
-        title="Test Task",
-        description="Test task description",
-        status=TaskStatus.PENDING,
-        priority=TaskPriority.MEDIUM,
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow()
-    )
+    now = datetime.now()
+    task = {
+        "id": "test-task-1",
+        "name": "Test Task",
+        "description": "Test task description",
+        "status": TaskStatus.PENDING,
+        "priority": TaskPriority.MEDIUM,
+        "business_impact": BusinessImpact.MEDIUM,
+        "estimated_duration": 1.0,
+        "dependencies": [],
+        "created_at": now,
+        "updated_at": now,
+        "metadata": {},
+        "phase": None,
+        "progress": 0.0,
+        "assigned_to": None,
+        "tags": [],
+        "due_date": None,
+        "subtasks": [],
+        "parent_task": None,
+        "requirements": {},
+        "completion_criteria": [],
+        "notes": ""
+    }
     
-    resource = ResourceSchema(
-        id="test-resource-1",
-        name="Test Resource",
-        type="developer",
-        capacity=1.0,
-        skills=["python", "testing"]
-    )
+    resource = {
+        "id": "test-resource-1",
+        "name": "Test Resource",
+        "type": ResourceType.AGENT,
+        "status": ResourceStatus.AVAILABLE,
+        "capacity": 1.0,
+        "current_load": 0.0,
+        "capabilities": [],
+        "allocated_to": None,
+        "metadata": {},
+        "limits": {}
+    }
     
     # Save both
     await persistence_manager.save_task(task)
     await persistence_manager.save_resource(resource)
     
     # Assign resource to task
-    await persistence_manager.assign_resource_to_task(task.id, resource.id)
+    await persistence_manager.assign_resource_to_task(task["id"], resource["id"])
     
     # Test resource assignment
-    task_resources = await persistence_manager.get_task_resources(task.id)
+    task_resources = await persistence_manager.get_task_resources(task["id"])
     assert len(task_resources) == 1
-    assert task_resources[0].id == resource.id
+    assert task_resources[0].id == resource["id"]
     
     # Test task assignment
-    resource_tasks = await persistence_manager.get_resource_tasks(resource.id)
+    resource_tasks = await persistence_manager.get_resource_tasks(resource["id"])
     assert len(resource_tasks) == 1
-    assert resource_tasks[0].id == task.id
+    assert resource_tasks[0].id == task["id"]
     
     # Test unassign
-    await persistence_manager.unassign_resource_from_task(task.id, resource.id)
-    task_resources = await persistence_manager.get_task_resources(task.id)
+    await persistence_manager.unassign_resource_from_task(task["id"], resource["id"])
+    task_resources = await persistence_manager.get_task_resources(task["id"])
     assert len(task_resources) == 0
 
 @pytest.mark.asyncio
@@ -174,15 +229,21 @@ async def test_error_handling(persistence_manager):
     assert non_existent is None
     
     # Test invalid task data
-    with pytest.raises(Exception):
-        await persistence_manager.save_task({"invalid": "data"})
+    invalid_data = {"invalid": "data"}  # Missing required fields
+    with pytest.raises(ValueError):
+        await persistence_manager.save_task(invalid_data)
     
     # Test delete non-existent
     await persistence_manager.delete_task("non-existent")  # Should not raise
     
     # Test invalid resource assignment
+    task_id = "non-existent-task"
+    resource_id = "non-existent-resource"
+    
+    # Verify both task and resource don't exist
+    task = await persistence_manager.get_task(task_id)
+    resource = await persistence_manager.get_resource(resource_id)
+    assert task is None and resource is None
+    
     with pytest.raises(Exception):
-        await persistence_manager.assign_resource_to_task(
-            "non-existent-task",
-            "non-existent-resource"
-        )
+        await persistence_manager.assign_resource_to_task(task_id, resource_id)

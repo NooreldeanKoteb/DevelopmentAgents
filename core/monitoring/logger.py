@@ -5,16 +5,23 @@ from typing import Any, Dict
 from core.config import get_settings
 
 class CoreLogger:
-    """Structured logging for core components."""
+    """Core system logger."""
     
     def __init__(self):
-        settings = get_settings()
         self.logger = logging.getLogger("core")
-        self.logger.setLevel(settings.LOG_LEVEL)
+        self.logger.setLevel(logging.INFO)
         
-        # Add JSON handler
+        # Ensure propagation to root logger (needed for caplog)
+        self.logger.propagate = True
+        
+        # Remove any existing handlers to prevent duplicates
+        self.logger.handlers = []
+        
+        # Add console handler
         handler = logging.StreamHandler()
-        handler.setFormatter(self.JsonFormatter())
+        handler.setLevel(logging.INFO)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        handler.setFormatter(formatter)
         self.logger.addHandler(handler)
         
     class JsonFormatter(logging.Formatter):

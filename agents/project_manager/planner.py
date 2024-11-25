@@ -98,3 +98,47 @@ class ProjectPlanner:
         # Implementation would parse JSON and validate structure
         # For now, we'll assume response is already in correct format
         return response
+
+    async def generate_timeline(self, tasks: List[TaskSchema]) -> Dict[str, Any]:
+        """Generate project timeline from tasks."""
+        timeline = {
+            "phases": self._distribute_into_phases(tasks),
+            "milestones": self._generate_milestones(tasks),
+            "estimated_duration": self._calculate_total_duration(tasks)
+        }
+        return timeline
+
+    def _distribute_into_phases(self, tasks: List[TaskSchema]) -> List[Dict[str, Any]]:
+        """Distribute tasks into phases based on dependencies."""
+        phases = []
+        # Group tasks by phase
+        phase_groups = {}
+        for task in tasks:
+            if task.phase not in phase_groups:
+                phase_groups[task.phase] = []
+            phase_groups[task.phase].append(task)
+        
+        # Convert to list of phase dictionaries
+        for phase_name, phase_tasks in phase_groups.items():
+            phases.append({
+                "name": phase_name,
+                "tasks": [t.id for t in phase_tasks],
+                "duration": sum(float(t.estimated_duration) for t in phase_tasks)
+            })
+        return phases
+
+    def _generate_milestones(self, tasks: List[TaskSchema]) -> List[Dict[str, Any]]:
+        """Generate project milestones from tasks."""
+        milestones = []
+        for task in tasks:
+            if not task.dependencies:  # Start milestone
+                milestones.append({
+                    "name": f"Start {task.name}",
+                    "task_id": task.id,
+                    "type": "start"
+                })
+        return milestones
+
+    def _calculate_total_duration(self, tasks: List[TaskSchema]) -> float:
+        """Calculate total project duration."""
+        return sum(float(task.estimated_duration) for task in tasks)

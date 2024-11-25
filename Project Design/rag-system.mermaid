@@ -1,0 +1,33 @@
+graph TB
+    subgraph "Knowledge Input"
+        DOC[Documents] --> PE[Preprocessing]
+        CODE[Code Repositories] --> PE
+        CONV[Agent Conversations] --> PE
+        LOGS[System Logs] --> PE
+    end
+
+    subgraph "Processing Pipeline"
+        PE --> CHK[Chunking]
+        CHK --> EMB[Embeddings]
+        EMB --> VDB[(Vector Store)]
+    end
+
+    subgraph "Retrieval System"
+        Q[Agent Query] --> QP[Query Processing]
+        QP --> QE[Query Embedding]
+        QE --> SIM[Similarity Search]
+        VDB --> SIM
+        SIM --> RR[Ranked Results]
+    end
+
+    subgraph "Generation Enhancement"
+        RR --> CP[Context Preparation]
+        CP --> OAI[OpenAI Prompt]
+        OAI --> ER[Enhanced Response]
+    end
+
+    subgraph "Knowledge Update"
+        ER --> KA[Knowledge Analysis]
+        KA --> |New Knowledge| PE
+        KA --> |Update| VDB
+    end
