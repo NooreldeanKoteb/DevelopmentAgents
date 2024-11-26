@@ -4,14 +4,16 @@ from datetime import datetime
 from .message import Message
 from .queue import MessageQueue
 from core.config import monitor_operation
+from collections import defaultdict
+import logging
 
 class MessageBroker:
     """Handles message routing and delivery between agents."""
     
     def __init__(self):
         self.queues: Dict[str, MessageQueue] = {}
-        self.subscribers: Dict[str, List[Callable[[Message], Awaitable[None]]]] = {}
-        self.error_handlers = set()
+        self.subscribers: Dict[str, List[Callable[[Message], Awaitable[None]]]] = defaultdict(list)
+        self.error_handlers = []
         self._closed = False
         self._running = True
         self._tasks = set()
@@ -32,8 +34,8 @@ class MessageBroker:
     @monitor_operation(agent_type="broker", operation="publish")
     async def publish(self, message: Message) -> None:
         """Publish a message to all subscribers of the topic."""
-        if self._closed:
-            raise RuntimeError("Broker is closed")
+        if not self._running:
+            return
             
         topic = message.topic
         
@@ -45,11 +47,21 @@ class MessageBroker:
         # Notify subscribers
         if topic in self.subscribers:
             tasks = [
-                subscriber(message) 
+                asyncio.create_task(self._safe_handle(subscriber, message))
                 for subscriber in self.subscribers[topic]
             ]
-            await asyncio.gather(*tasks, return_exceptions=True)
+            self._tasks.update(tasks)
+            for task in tasks:
+                task.add_done_callback(self._tasks.discard)
     
+    async def _safe_handle(self, handler, message):
+        """Safely execute handler with error handling."""
+        try:
+            await handler(message)
+        except Exception as e:
+            # Ensure error handlers are called
+            await self._handle_error(e)
+            
     @monitor_operation(agent_type="broker", operation="subscribe")
     async def subscribe(
         self, 
@@ -82,12 +94,16 @@ class MessageBroker:
     
     def on_error(self, handler: Callable):
         """Register an error handler."""
-        self.error_handlers.add(handler)
+        self.error_handlers.append(handler)
         
     async def _handle_error(self, error: Exception):
-        """Handle errors by notifying registered handlers."""
+        """Handle error by notifying all error handlers."""
         for handler in self.error_handlers:
-            await handler(error)
+            try:
+                await handler(error)
+            except Exception as e:
+                # Log secondary errors but don't propagate
+                logging.error(f"Error in error handler: {e}")
     
     async def cleanup(self) -> None:
         """Cleanup broker resources."""

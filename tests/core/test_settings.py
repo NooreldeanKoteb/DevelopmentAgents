@@ -5,7 +5,8 @@ def test_settings_defaults():
     """Test default settings values."""
     settings = Settings(
         OPENAI_API_KEY="dummy-key",
-        _env_file=None  # Ignore any .env file
+        _env_file=None,  # Ignore any .env file
+        DEBUG=False
     )
     
     assert settings.ENVIRONMENT == "development"
@@ -18,6 +19,7 @@ def test_settings_defaults():
     assert settings.VECTOR_DB_PATH == "./data/vector_store"
     assert settings.LOG_LEVEL == "INFO"
     assert settings.PROMETHEUS_PORT == 9090
+    assert settings.SERVER_PORT == 8000
 
 def test_settings_override():
     """Test settings override with custom values."""

@@ -22,7 +22,7 @@ class CoreMetrics:
                         ['model', 'operation']
                     ),
                     'openai_cost': Counter(
-                        'core_openai_cost_dollars',
+                        'core_openai_cost_total',
                         'Total OpenAI cost in dollars',
                         ['model']
                     ),

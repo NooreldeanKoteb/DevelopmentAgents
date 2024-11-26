@@ -1,40 +1,47 @@
 import logging
 import json
-from datetime import datetime
 from typing import Any, Dict
-from core.config import get_settings
+
+class JsonFormatter(logging.Formatter):
+    """Custom JSON formatter."""
+    def format(self, record):
+        # First call the parent class's format to get the message
+        record.message = record.getMessage()
+        
+        log_data = {
+            "timestamp": self.formatTime(record),
+            "level": record.levelname,
+            "message": record.message,
+            "data": getattr(record, 'data', {})
+        }
+        return json.dumps(log_data)
 
 class CoreLogger:
-    """Core system logger."""
+    """Core logging functionality with JSON formatting."""
     
     def __init__(self):
+        """Initialize logger with JSON formatter."""
         self.logger = logging.getLogger("core")
-        self.logger.setLevel(logging.INFO)
+        self.formatter = JsonFormatter()
         
-        # Ensure propagation to root logger (needed for caplog)
-        self.logger.propagate = True
-        
-        # Remove any existing handlers to prevent duplicates
-        self.logger.handlers = []
-        
-        # Add console handler
-        handler = logging.StreamHandler()
-        handler.setLevel(logging.INFO)
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        handler.setFormatter(formatter)
-        self.logger.addHandler(handler)
-        
-    class JsonFormatter(logging.Formatter):
-        def format(self, record: logging.LogRecord) -> str:
-            log_data = {
-                "timestamp": datetime.utcnow().isoformat(),
-                "level": record.levelname,
-                "message": record.getMessage(),
-                "module": record.module,
-                "function": record.funcName
-            }
-            
-            if hasattr(record, "extra"):
-                log_data.update(record.extra)
-                
-            return json.dumps(log_data) 
+        # Add handler if none exists
+        if not self.logger.handlers:
+            handler = logging.StreamHandler()
+            handler.setFormatter(self.formatter)
+            self.logger.addHandler(handler)
+    
+    def _format_extra(self, extra: Dict[str, Any] = None) -> Dict[str, Any]:
+        """Format extra data for JSON logging."""
+        return extra if extra is not None else {}
+    
+    def info(self, message: str, extra: Dict[str, Any] = None):
+        """Log info message with JSON formatting."""
+        self.logger.info(message, extra={"data": self._format_extra(extra)})
+    
+    def error(self, message: str, extra: Dict[str, Any] = None):
+        """Log error message with JSON formatting."""
+        self.logger.error(message, extra={"data": self._format_extra(extra)})
+    
+    def warning(self, message: str, extra: Dict[str, Any] = None):
+        """Log warning message with JSON formatting."""
+        self.logger.warning(message, extra={"data": self._format_extra(extra)})

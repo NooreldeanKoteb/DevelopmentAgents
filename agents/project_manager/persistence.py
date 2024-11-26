@@ -4,6 +4,7 @@ from redis.asyncio import Redis
 from datetime import datetime
 import json
 from enum import Enum
+from pydantic import BaseModel
 
 from core.schemas.enums import (
     ResourceType,
@@ -147,30 +148,36 @@ class PersistenceManager:
         - save_resource(resource_schema)  # Single argument form
         - save_resource(resource_id, resource_data)  # Two argument form
         """
-        # Handle single argument form
-        if isinstance(resource_id, (ResourceSchema, dict)) and resource_data is None:
-            resource_data = resource_id
-            resource_id = resource_data.id if isinstance(resource_data, ResourceSchema) else resource_data.get('id')
-            if not resource_id:
-                raise ValueError("Resource ID is required")
-        
-        # Handle two argument form
-        elif isinstance(resource_id, str):
-            if resource_data is None:
-                raise ValueError("Resource data is required when providing resource_id as string")
-        else:
-            raise ValueError("Invalid arguments provided to save_resource")
+        try:
+            # Handle single argument form
+            if isinstance(resource_id, (ResourceSchema, dict)) and resource_data is None:
+                resource_data = resource_id
+                resource_id = resource_data.id if isinstance(resource_data, ResourceSchema) else resource_data.get('id')
+                if not resource_id:
+                    raise ValueError("Resource ID is required")
+            
+            # Handle two argument form
+            elif isinstance(resource_id, str):
+                if resource_data is None:
+                    raise ValueError("Resource data is required when providing resource_id as string")
+            else:
+                raise ValueError("Invalid arguments provided to save_resource")
 
-        # Convert dict to ResourceSchema if needed
-        if isinstance(resource_data, dict):
-            resource_data = ResourceSchema.model_validate(resource_data)
-        elif not isinstance(resource_data, ResourceSchema):
-            raise ValueError("Resource data must be ResourceSchema or dict")
+            # Convert to dict for storage
+            if isinstance(resource_data, (ResourceSchema, BaseModel)):
+                resource_dict = resource_data.model_dump()
+            elif isinstance(resource_data, dict):
+                resource_dict = ResourceSchema.model_validate(resource_data).model_dump()
+            else:
+                raise ValueError(f"Resource data must be ResourceSchema or dict, got {type(resource_data)}")
 
-        resource_dict = resource_data.model_dump()
-        serialized = self._serialize_data(resource_dict)
-        await self.redis.hset(f"resource:{resource_id}", mapping=serialized)
-        await self.redis.sadd("resources", resource_id)
+            # Serialize and store
+            serialized = self._serialize_data(resource_dict)
+            await self.redis.hset(f"resource:{resource_id}", mapping=serialized)
+            await self.redis.sadd("resources", resource_id)
+
+        except Exception as e:
+            raise ValueError(f"Failed to save resource: {str(e)}")
 
     async def get_resource(self, resource_id: str) -> Optional[ResourceSchema]:
         """Get resource by ID."""

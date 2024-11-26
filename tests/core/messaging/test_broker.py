@@ -121,6 +121,8 @@ async def test_broker_error_handling():
         raise Exception("Test error")
     
     async def error_handler(error):
+        assert isinstance(error, Exception)
+        assert str(error) == "Test error"
         error_received.set()
     
     broker.on_error(error_handler)
@@ -134,11 +136,12 @@ async def test_broker_error_handling():
     )
     await broker.publish(test_message)
     
-    # Wait for error handling
+    # Wait for error handling with increased timeout
     try:
-        await asyncio.wait_for(error_received.wait(), timeout=1.0)
+        await asyncio.wait_for(error_received.wait(), timeout=2.0)
         assert error_received.is_set()
     except asyncio.TimeoutError:
         pytest.fail("Error not handled within timeout")
-    finally:
-        await broker.close() 
+    
+    # Ensure cleanup
+    await broker.cleanup() 

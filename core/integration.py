@@ -84,22 +84,26 @@ class CoreIntegration:
             
     async def health_check(self) -> Dict[str, Any]:
         """Check health of all services."""
+        health_status = {
+            "status": "healthy",
+            "services": {},  # Initialize services dict first
+            "timestamp": asyncio.get_running_loop().time()
+        }
+        
         try:
-            health_status = {
-                "status": "healthy",
-                "services": {},
-                "timestamp": asyncio.get_running_loop().time()
-            }
-            
             # Check Redis
             try:
                 await self.redis.ping()
                 health_status["services"]["redis"] = {"status": "healthy"}
             except Exception as e:
+                if self.metrics:
+                    self.metrics.error_count.inc()
+                    self.metrics.error_types.labels("redis_error").inc()
                 health_status["services"]["redis"] = {
                     "status": "unhealthy",
                     "error": str(e)
                 }
+                health_status["status"] = "unhealthy"
             
             # Check message broker
             if self.message_broker:
@@ -128,10 +132,15 @@ class CoreIntegration:
             return health_status
             
         except Exception as e:
-            self.logger.logger.error("Health check failed", extra={"error": str(e)})
+            # Ensure we return a properly structured response even on unexpected errors
             return {
                 "status": "unhealthy",
-                "error": str(e),
+                "services": {
+                    "redis": {
+                        "status": "unhealthy",
+                        "error": str(e)
+                    }
+                },
                 "timestamp": asyncio.get_running_loop().time()
             }
             
