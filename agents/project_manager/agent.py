@@ -4,7 +4,8 @@ import asyncio
 import uuid
 
 from agents.base import BaseAgent, AgentError
-from core.messaging import Message
+from agents.base.message import Message as BaseMessage  # Import base Message
+from core.messaging.message import Message as CoreMessage  # Import core Message for pub/sub
 from core.schemas import (
     AgentType, TaskSchema, TaskStatus, TaskPriority,
     AgentSchema, ResourceSchema
@@ -36,44 +37,59 @@ class ProjectManagerAgent(BaseAgent):
         """Initialize project manager components."""
         await super().initialize()
         
+        # Initialize services if not injected
         self.planner = ProjectPlanner()
-        self.task_manager = TaskManager()
-        self.resource_manager = ResourceManager()
+        if not self.task_service:
+            self.task_service = TaskManager(persistence=PersistenceManager())
+        if not self.resource_service:
+            self.resource_service = ResourceManager()
+        if not self.planner_service:
+            self.planner_service = ProjectPlanner()
         
-        # Subscribe to additional topics
-        topics = [
-            "project.new",
-            "project.update",
-            "task.status",
-            "agent.status",
-            "resource.status"
-        ]
+        # Subscribe to topics using process_message as the callback
+        if self.message_broker:
+            topics = [
+                "project.new",
+                "project.update",
+                "task.status",
+                "agent.status",
+                "resource.status"
+            ]
+            
+            for topic in topics:
+                await self.message_broker.subscribe(
+                    topic=topic,
+                    callback=self.process_message  # Use process_message as the callback
+                )
         
-        for topic in topics:
-            await self.message_broker.subscribe(topic, self._handle_message)
+    async def _handle_message_type(self, message: CoreMessage) -> Any:
+        """Handle different types of project management messages."""
+        # Handle messages based on topic if present
+        if hasattr(message, 'topic') and message.topic:
+            topic_handlers = {
+                "project.new": self._handle_new_project,
+                "project.update": self._handle_project_update,
+                "task.status": self._handle_task_status,
+                "agent.status": self._handle_agent_status,
+                "resource.status": self._handle_resource_status
+            }
+            if message.topic in topic_handlers:
+                return await topic_handlers[message.topic](message)
+        
+        # Fall back to type-based handling
+        type_handlers = {
+            "task.create": self._handle_task_creation,
+            "task.update": self._handle_task_status,
+            "project.create": self._handle_new_project,
+            "project.update": self._handle_project_update
+        }
+        
+        if message.type not in type_handlers:
+            raise AgentError(f"Unsupported message type: {message.type}")
             
-    async def process_message(self, message: Message) -> Optional[Message]:
-        """Process incoming messages."""
-        try:
-            if message.topic == "project.new":
-                return await self._handle_new_project(message)
-            elif message.topic == "project.update":
-                return await self._handle_project_update(message)
-            elif message.topic == "task.status":
-                return await self._handle_task_status(message)
-            elif message.topic == "agent.status":
-                return await self._handle_agent_status(message)
-            elif message.topic == "resource.status":
-                return await self._handle_resource_status(message)
-                
-        except Exception as e:
-            self.logger.logger.error(
-                f"Error processing message: {str(e)}",
-                extra={"message": message.model_dump()}
-            )
-            raise AgentError(f"Message processing failed: {str(e)}")
-            
-    async def _handle_new_project(self, message: Message) -> Message:
+        return await type_handlers[message.type](message)
+        
+    async def _handle_new_project(self, message: CoreMessage) -> CoreMessage:
         """Handle new project request."""
         project_spec = message.content
         
@@ -97,7 +113,7 @@ class ProjectManagerAgent(BaseAgent):
             }
         )
         
-        return Message(
+        return CoreMessage(
             topic="project.created",
             content={
                 "project_id": project_spec["id"],
@@ -107,7 +123,7 @@ class ProjectManagerAgent(BaseAgent):
             sender=self.id
         )
         
-    async def _handle_project_update(self, message: Message) -> Optional[Message]:
+    async def _handle_project_update(self, message: CoreMessage) -> Optional[CoreMessage]:
         """Handle project update request."""
         project_id = message.content["project_id"]
         update_type = message.content["type"]
@@ -143,7 +159,7 @@ class ProjectManagerAgent(BaseAgent):
         # Update project context
         await self.save_to_memory(f"project:{project_id}", project_data)
         
-        return Message(
+        return CoreMessage(
             topic="project.updated",
             content={
                 "project_id": project_id,
@@ -154,7 +170,7 @@ class ProjectManagerAgent(BaseAgent):
             sender=self.id
         )
         
-    async def _handle_task_status(self, message: Message) -> Optional[Message]:
+    async def _handle_task_status(self, message: CoreMessage) -> Optional[CoreMessage]:
         """Handle task status updates."""
         task_id = message.content["task_id"]
         new_status = message.content["status"]
@@ -183,7 +199,7 @@ class ProjectManagerAgent(BaseAgent):
         # Update project context
         await self.save_to_memory(f"project:{project_id}", project_data)
         
-        return Message(
+        return CoreMessage(
             topic="project.task.updated",
             content={
                 "project_id": project_id,
@@ -195,7 +211,7 @@ class ProjectManagerAgent(BaseAgent):
             sender=self.id
         )
         
-    async def _handle_agent_status(self, message: Message) -> Optional[Message]:
+    async def _handle_agent_status(self, message: CoreMessage) -> Optional[CoreMessage]:
         """Handle agent status updates."""
         agent_id = message.content["agent_id"]
         new_status = message.content["status"]
@@ -215,7 +231,7 @@ class ProjectManagerAgent(BaseAgent):
                 project_data["resources"] = resources
                 await self.save_to_memory(f"project:{project_id}", project_data)
                 
-    async def _handle_resource_status(self, message: Message) -> Optional[Message]:
+    async def _handle_resource_status(self, message: CoreMessage) -> Optional[CoreMessage]:
         """Handle resource status updates."""
         resource_id = message.content["resource_id"]
         new_status = message.content["status"]
@@ -248,13 +264,13 @@ class ProjectManagerAgent(BaseAgent):
         task_type = task.get("type")
         
         if task_type == "create_project":
-            return await self._handle_new_project(Message(
+            return await self._handle_new_project(CoreMessage(
                 topic="project.new",
                 content=task["project_spec"],
                 sender="system"
             ))
         elif task_type == "update_project":
-            return await self._handle_project_update(Message(
+            return await self._handle_project_update(CoreMessage(
                 topic="project.update",
                 content=task["update_spec"],
                 sender="system"
@@ -266,4 +282,34 @@ class ProjectManagerAgent(BaseAgent):
         """Handle agent errors."""
         self.logger.logger.error(f"Error in ProjectManager: {str(error)}")
         self.metrics.error_count.inc()
+
+    async def _handle_task_creation(self, message: BaseMessage) -> BaseMessage:
+        """Handle task creation request."""
+        try:
+            task = await self.task_service.create_task(message.content)
+            resources = await self.resource_service.get_resources()
+            timeline = await self.planner_service.generate_timeline([task])
+            
+            return BaseMessage(  # Use BaseMessage for agent-to-agent communication
+                type="task.created",
+                content={
+                    "task": task,
+                    "resources": resources,
+                    "timeline": timeline,
+                    "action_type": "task_creation"
+                },
+                sender=self.id
+            )
+        except Exception as e:
+            raise AgentError(f"Failed to create task: {str(e)}")
         # Add any specific error handling logic here
+
+    async def _publish_event(self, topic: str, content: dict) -> None:
+        """Publish events using CoreMessage for pub/sub."""
+        if self.message_broker:
+            message = CoreMessage(
+                topic=topic,
+                content=content,
+                sender=self.id
+            )
+            await self.message_broker.publish(message)
