@@ -30,12 +30,12 @@ async def redis_pool():
 @pytest.fixture(scope="function")
 async def redis_client(redis_pool):
     """Create a Redis client for testing."""
-    client = Redis(connection_pool=redis_pool)
-    yield client
+    client = Redis(connection_pool=redis_pool, decode_responses=True)
     try:
-        await client.close(close_connection_pool=False)
-    except Exception:
-        pass
+        await client.flushdb()
+        yield client
+    finally:
+        await client.aclose(close_connection_pool=False)
 
 @pytest.fixture(autouse=True)
 async def cleanup_redis(redis_client):
@@ -87,10 +87,11 @@ async def project_manager(task_manager, resource_manager, planner):
 async def clean_redis():
     """Clean Redis before and after each test."""
     redis = Redis.from_url("redis://localhost:6379/0", decode_responses=True)
-    await redis.flushdb()
-    yield
-    await redis.flushdb()
-    await redis.close()
+    try:
+        await redis.flushdb()
+        yield
+    finally:
+        await redis.aclose()
 
 @pytest.fixture(autouse=True)
 def clean_metrics():

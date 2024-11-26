@@ -14,7 +14,7 @@ async def openai_client():
     yield client
     # Clear cache after test
     await client.cache.redis.flushdb()
-    await client.cache.redis.close()
+    await client.cache.redis.aclose()
 
 @pytest.mark.asyncio
 async def test_get_completion_success(openai_client):

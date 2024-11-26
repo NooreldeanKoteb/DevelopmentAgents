@@ -3,11 +3,15 @@ import redis.asyncio as redis
 from datetime import datetime, timedelta
 import json
 from .errors import MemoryError
+from redis.asyncio import Redis
 
 class Memory:
-    def __init__(self, redis_url: str = "redis://localhost:6379/0"):
-        """Initialize memory with Redis connection."""
-        self.redis = redis.from_url(redis_url)
+    def __init__(self, redis_client: Redis = None, redis_url: str = None):
+        if redis_client:
+            self.redis = redis_client
+        else:
+            url = redis_url or "redis://localhost:6379/0"
+            self.redis = Redis.from_url(url, decode_responses=True)
         self._initialized = False
         
     async def initialize(self) -> None:
@@ -23,12 +27,8 @@ class Memory:
             
     async def cleanup(self) -> None:
         """Cleanup memory resources."""
-        try:
-            if self._initialized:
-                await self.redis.close()
-                self._initialized = False
-        except Exception as e:
-            raise MemoryError(f"Failed to cleanup memory: {str(e)}")
+        if hasattr(self, 'redis'):
+            await self.redis.aclose()
         
     async def store(self, key: str, value: Any, ttl: Optional[int] = None) -> None:
         """Store a value in memory."""
@@ -58,7 +58,7 @@ class Memory:
                     return json.loads(value)
                 except json.JSONDecodeError:
                     # If not JSON, return as string
-                    return value.decode()
+                    return value
             return None
         except Exception as e:
             raise MemoryError(f"Failed to retrieve memory: {str(e)}")
@@ -88,7 +88,7 @@ class Memory:
             memories = []
             for key in keys:
                 value = await self.retrieve(key)
-                memories.append({"key": key.decode(), "value": value})
+                memories.append({"key": key, "value": value})
             return memories
         except Exception as e:
             raise MemoryError(f"Failed to list memories: {str(e)}")

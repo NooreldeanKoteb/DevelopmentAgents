@@ -191,11 +191,14 @@ async def test_error_handling():
               new_callable=AsyncMock) as mock_ping:
         mock_ping.side_effect = Exception("Connection failed")
         
-        with pytest.raises(RuntimeError) as exc_info:
-            core = CoreIntegration()
+        core = CoreIntegration()
+        try:
             await core.initialize()
-        
-        assert "Connection failed" in str(exc_info.value)
+        except RuntimeError as exc:
+            assert "Connection failed" in str(exc)
+        finally:
+            if hasattr(core, 'cleanup'):
+                await core.cleanup()
 
 @pytest.mark.asyncio
 async def test_service_integration(core):

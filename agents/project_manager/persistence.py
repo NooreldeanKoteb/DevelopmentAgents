@@ -17,13 +17,12 @@ from core.schemas.resource import ResourceSchema
 from core.schemas.task import TaskSchema
 
 class PersistenceManager:
-    def __init__(self, redis_url: Optional[str] = None, redis_client: Optional[Redis] = None):
+    def __init__(self, redis_client: Redis = None, redis_url: str = None):
         if redis_client:
             self.redis = redis_client
-        elif redis_url:
-            self.redis = aioredis.from_url(redis_url)
         else:
-            self.redis = aioredis.from_url("redis://localhost:6379/0")
+            url = redis_url or "redis://localhost:6379/0"
+            self.redis = Redis.from_url(url, decode_responses=True)
 
     def _serialize_value(self, value: Any) -> str:
         """Serialize a single value for Redis storage."""
@@ -74,18 +73,30 @@ class PersistenceManager:
                 return []
             return value
 
-    def _serialize_data(self, data: Dict[str, Any]) -> Dict[str, str]:
-        """Serialize data for Redis storage."""
-        return {str(k): self._serialize_value(v) for k, v in data.items()}
-
-    def _deserialize_data(self, prefix: str, data: Dict[bytes, bytes]) -> Dict[str, Any]:
+    def _deserialize_data(self, prefix: str, data: Dict[str, str]) -> Dict[str, Any]:
         """Deserialize data from Redis storage."""
         deserialized = {}
         for key, value in data.items():
-            key_str = key.decode('utf-8')
-            value_str = value.decode('utf-8')
+            # Handle potential byte strings
+            key_str = key.decode('utf-8') if isinstance(key, bytes) else key
+            value_str = value.decode('utf-8') if isinstance(value, bytes) else value
+            
+            # Remove prefix from key if present
+            if key_str.startswith(prefix):
+                key_str = key_str[len(prefix):]
+            
             deserialized[key_str] = self._deserialize_value(prefix, key_str, value_str)
         return deserialized
+
+    def _serialize_data(self, data: Dict[str, Any]) -> Dict[str, str]:
+        """Serialize data for Redis storage."""
+        serialized = {}
+        for k, v in data.items():
+            # Ensure keys are strings
+            key = str(k)
+            value = self._serialize_value(v)
+            serialized[key] = value
+        return serialized
 
     async def get_task(self, task_id: str) -> Optional[TaskSchema]:
         """Get task by ID."""
@@ -95,36 +106,37 @@ class PersistenceManager:
         deserialized = self._deserialize_data("task:", data)
         return TaskSchema.model_validate(deserialized)
 
-    async def save_task(self, task_id: Union[str, TaskSchema, Dict], task_data: Optional[Union[TaskSchema, Dict]] = None) -> None:
-        """Save task data to Redis.
-        Can be called as either:
-        - save_task(task_schema)  # Single argument form
-        - save_task(task_id, task_data)  # Two argument form
-        """
-        # Handle single argument form
-        if isinstance(task_id, (TaskSchema, dict)) and task_data is None:
-            task_data = task_id
-            task_id = task_data.id if isinstance(task_data, TaskSchema) else task_data.get('id')
-            if not task_id:
-                raise ValueError("Task ID is required")
-        
-        # Handle two argument form
-        elif isinstance(task_id, str):
-            if task_data is None:
-                raise ValueError("Task data is required when providing task_id as string")
-        else:
-            raise ValueError("Invalid arguments provided to save_task")
+    async def save_task(self, task_id: Union[str, Dict, TaskSchema], task_data: Optional[Union[Dict, TaskSchema]] = None) -> None:
+        """Save a task."""
+        try:
+            # Handle single argument form
+            if isinstance(task_id, (TaskSchema, dict)) and task_data is None:
+                task_data = task_id
+                task_id = task_data.id if isinstance(task_data, TaskSchema) else task_data.get('id')
+                if not task_id:
+                    raise ValueError("Task ID is required")
 
-        # Convert dict to TaskSchema if needed
-        if isinstance(task_data, dict):
-            task_data = TaskSchema.model_validate(task_data)
-        elif not isinstance(task_data, TaskSchema):
-            raise ValueError("Task data must be TaskSchema or dict")
+            # Convert to dict for storage
+            if isinstance(task_data, TaskSchema):
+                task_dict = task_data.model_dump()
+            elif isinstance(task_data, dict):
+                task_dict = task_data.copy()  # Make a copy to avoid modifying original
+            else:
+                raise ValueError(f"Task data must be TaskSchema or dict, got {type(task_data)}")
 
-        task_dict = task_data.model_dump()
-        serialized = self._serialize_data(task_dict)
-        await self.redis.hset(f"task:{task_id}", mapping=serialized)
-        await self.redis.sadd("tasks", task_id)
+            # Ensure ID is set
+            task_dict['id'] = task_id
+
+            # Validate before saving
+            TaskSchema.model_validate(task_dict)
+
+            # Serialize and store
+            serialized = self._serialize_data(task_dict)
+            await self.redis.hset(f"task:{task_id}", mapping=serialized)
+            await self.redis.sadd("tasks", task_id)
+
+        except Exception as e:
+            raise ValueError(f"Failed to save task: {str(e)}")
 
     async def delete_task(self, task_id: str) -> None:
         """Delete a task."""
@@ -136,7 +148,6 @@ class PersistenceManager:
         tasks = []
         
         for task_id in task_ids:
-            task_id = task_id.decode('utf-8')
             task = await self.get_task(task_id)
             if task and (status is None or task.status == status):
                 tasks.append(task)
@@ -212,7 +223,7 @@ class PersistenceManager:
         resource_ids = await self.redis.smembers(f"task:{task_id}:resources")
         resources = []
         for rid in resource_ids:
-            resource = await self.get_resource(rid.decode())
+            resource = await self.get_resource(rid)
             if resource:
                 resources.append(resource)
         return resources
@@ -222,7 +233,12 @@ class PersistenceManager:
         task_ids = await self.redis.smembers(f"resource:{resource_id}:tasks")
         tasks = []
         for tid in task_ids:
-            task = await self.get_task(tid.decode())
+            task = await self.get_task(tid)
             if task:
                 tasks.append(task)
         return tasks
+
+    async def cleanup(self):
+        """Cleanup resources."""
+        if hasattr(self, 'redis'):
+            await self.redis.aclose()

@@ -1,30 +1,44 @@
 import pytest
 from core.schemas import TaskSchema, ResourceSchema, TaskStatus, TaskPriority, BusinessImpact, ResourceType, ResourceStatus
+from datetime import datetime
 
 @pytest.mark.asyncio
 async def test_save_and_get_task(persistence_manager):
     """Test saving and retrieving a task."""
-    task_data = TaskSchema(
-        id="test-task",
-        name="Test Task",
-        description="Test Description",
-        status=TaskStatus.PENDING,
-        priority=TaskPriority.HIGH,
-        business_impact=BusinessImpact.MEDIUM,
-        estimated_duration=2.0,
-        dependencies=[]
-    )
+    task_data = {
+        "id": "test-task",
+        "name": "Test Task",
+        "description": "Test Description",
+        "status": TaskStatus.PENDING,
+        "priority": TaskPriority.HIGH,
+        "business_impact": BusinessImpact.MEDIUM,
+        "estimated_duration": 2.0,
+        "dependencies": [],
+        "created_at": datetime.now(),
+        "updated_at": datetime.now(),
+        "metadata": {},
+        "phase": None,
+        "progress": 0.0,
+        "assigned_to": None,
+        "tags": [],
+        "due_date": None,
+        "subtasks": [],
+        "parent_task": None,
+        "requirements": {},
+        "completion_criteria": [],
+        "notes": ""
+    }
     
     # Save and retrieve task
-    await persistence_manager.save_task(task_data.id, task_data)
-    retrieved = await persistence_manager.get_task(task_data.id)
+    await persistence_manager.save_task(task_data)
+    retrieved = await persistence_manager.get_task(task_data["id"])
     
     # Verify results
-    assert retrieved.id == task_data.id
-    assert retrieved.name == task_data.name
-    assert retrieved.status == task_data.status
-    assert retrieved.priority == task_data.priority
-    assert retrieved.business_impact == task_data.business_impact
+    assert retrieved.id == task_data["id"]
+    assert retrieved.name == task_data["name"]
+    assert retrieved.status == task_data["status"]
+    assert retrieved.priority == task_data["priority"]
+    assert retrieved.business_impact == task_data["business_impact"]
 
 @pytest.mark.asyncio
 async def test_save_and_get_resource(persistence_manager):

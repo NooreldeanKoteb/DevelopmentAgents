@@ -162,26 +162,22 @@ class CoreIntegration:
             await asyncio.sleep(self._health_check_interval)
             
     async def cleanup(self) -> None:
-        """Cleanup all services."""
-        if self._health_check_task:
-            self._health_check_task.cancel()
-            try:
-                await self._health_check_task
-            except asyncio.CancelledError:
-                pass
-
-        # Cleanup services in order
-        if self.message_broker:
-            await self.message_broker.close()
-            
-        if self.vector_store:
-            await self.vector_store.cleanup()
-            
-        if self.redis:
-            await self.redis.close()
-
-        self.initialized = False
-        await asyncio.sleep(0.1)
+        """Cleanup all resources."""
+        try:
+            if hasattr(self, 'redis') and self.redis is not None:
+                await self.redis.aclose()
+            if hasattr(self, 'message_broker') and self.message_broker is not None:
+                await self.message_broker.cleanup()
+            if hasattr(self, 'message_store') and self.message_store is not None:
+                await self.message_store.cleanup()
+            if hasattr(self, '_health_check_task') and self._health_check_task is not None:
+                self._health_check_task.cancel()
+                try:
+                    await self._health_check_task
+                except asyncio.CancelledError:
+                    pass
+        finally:
+            self.initialized = False
         
     async def __aenter__(self):
         """Async context manager entry."""

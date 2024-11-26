@@ -3,16 +3,18 @@ import json
 from datetime import datetime, timedelta
 import redis.asyncio as aioredis
 from core.config import get_settings
+from redis.asyncio import Redis
 
 class ResponseCache:
     """Caches OpenAI responses to reduce API calls."""
     
-    def __init__(self):
+    def __init__(self, redis_client: Redis = None, redis_url: str = None):
+        if redis_client:
+            self.redis = redis_client
+        else:
+            url = redis_url or "redis://localhost:6379/0"
+            self.redis = Redis.from_url(url, decode_responses=True)
         self.settings = get_settings()
-        self.redis = aioredis.from_url(
-            self.settings.REDIS_URL,
-            decode_responses=True
-        )
         self.ttl = int(timedelta(hours=24).total_seconds())  # Convert to seconds
         
     async def get(self, key: str) -> Optional[Dict[str, Any]]:
@@ -63,3 +65,8 @@ class ResponseCache:
         except Exception as e:
             print(f"Error clearing cache: {str(e)}")
             raise
+
+    async def cleanup(self):
+        """Cleanup resources."""
+        if hasattr(self, 'redis'):
+            await self.redis.aclose()

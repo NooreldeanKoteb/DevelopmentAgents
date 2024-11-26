@@ -8,8 +8,12 @@ from core.config import get_settings
 class MessageStore:
     """Persistent storage for message history."""
     
-    def __init__(self, redis: Redis):
-        self.redis = redis
+    def __init__(self, redis: Redis = None, redis_url: str = None):
+        if redis:
+            self.redis = redis
+        else:
+            url = redis_url or "redis://localhost:6379/0"
+            self.redis = Redis.from_url(url, decode_responses=True)
         self.retention_days = 7
         
     def _serialize_message(self, message: Dict) -> str:
@@ -82,3 +86,8 @@ class MessageStore:
                 messages.append(Message.model_validate(message_data))
                 
         return messages 
+
+    async def cleanup(self):
+        """Cleanup resources."""
+        if hasattr(self, 'redis'):
+            await self.redis.aclose()
