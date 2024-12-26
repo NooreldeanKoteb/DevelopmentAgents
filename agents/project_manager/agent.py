@@ -2,6 +2,7 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime
 import asyncio
 import uuid
+import json
 
 from agents.base import BaseAgent, AgentError
 from agents.base.message import Message as BaseMessage  # Import base Message
@@ -138,11 +139,13 @@ class ProjectManagerAgent(BaseAgent):
         project_id = message.content["project_id"]
         update_type = message.content["type"]
         
-        # Retrieve project context
-        project_data = await self.recall_from_memory(f"project:{project_id}")
-        if not project_data:
+        # Retrieve project context and parse JSON
+        project_data_str = await self.recall_from_memory(f"project:{project_id}")
+        if not project_data_str:
             raise AgentError(f"Project {project_id} not found")
-            
+        
+        project_data = json.loads(project_data_str)  # Parse the JSON string into a dict
+        
         if update_type == "modify_plan":
             # Update project plan
             new_plan = await self.planner.update_plan(

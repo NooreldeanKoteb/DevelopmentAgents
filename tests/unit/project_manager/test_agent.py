@@ -5,13 +5,40 @@ from agents.base.message import Message as BaseMessage
 from core.messaging.message import Message as CoreMessage
 from core.schemas.enums import AgentType, TaskStatus, ResourceStatus, TaskPriority
 from core.schemas import TaskSchema, ResourceSchema
+import json
 
 @pytest.fixture
 def mock_memory():
     """Create mock memory system."""
     memory = MagicMock()
     memory.initialize = AsyncMock()
-    memory.get = AsyncMock()
+    # Add store method (used by save_to_memory)
+    memory.store = AsyncMock()
+    # Add cleanup method
+    memory.cleanup = AsyncMock()
+    # Return JSON-encoded string for get/retrieve
+    memory.get = AsyncMock(return_value=json.dumps({
+        "spec": {
+            "id": "test-project",
+            "name": "Test Project"
+        },
+        "plan": {
+            "phases": []
+        },
+        "tasks": [],
+        "resources": []
+    }))
+    memory.retrieve = AsyncMock(return_value=json.dumps({
+        "spec": {
+            "id": "test-project",
+            "name": "Test Project"
+        },
+        "plan": {
+            "phases": []
+        },
+        "tasks": [],
+        "resources": []
+    }))
     memory.set = AsyncMock()
     memory.delete = AsyncMock()
     memory.list_memories = AsyncMock(return_value=[])
@@ -60,19 +87,14 @@ def mock_task_service():
 def mock_resource_service():
     """Create mock resource service."""
     service = MagicMock()
-    # Return empty list instead of AsyncMock for get_resources
     service.get_resources = AsyncMock(return_value=[])
-    # Return dict instead of AsyncMock for allocate_resources
     service.allocate_resources = AsyncMock(return_value={
         "allocated": True,
         "resources": []
     })
-    service.update_agent_status = AsyncMock()
     service.update_resource_status = AsyncMock()
-    service.reallocate_resources = AsyncMock(return_value={
-        "reallocated": True,
-        "resources": []
-    })
+    service.update_agent_status = AsyncMock()
+    service.reallocate_resources = AsyncMock()
     service.initialize = AsyncMock()
     return service
 
@@ -132,6 +154,7 @@ async def agent(mock_redis_client, mock_task_service, mock_resource_service, moc
         agent.planner = mock_planner_service
         agent.resource_manager = mock_resource_service
         agent.task_service = mock_task_service
+        agent.memory = mock_memory
         await agent.initialize()
         return agent
 
@@ -245,6 +268,67 @@ async def test_handle_error(agent):
     error = Exception("Test error")
     await agent.handle_error(error)
     agent.metrics.error_count.inc.assert_called_once()
+
+@pytest.mark.asyncio
+async def test_invalid_message_type(agent):
+    """Test handling invalid message type."""
+    message = CoreMessage(
+        topic="invalid.topic",
+        content={},
+        sender="test"
+    )
+    
+    with pytest.raises(Exception):
+        await agent._handle_message_type(message)
+
+@pytest.mark.asyncio
+async def test_handle_project_update(agent):
+    """Test handling project updates."""
+    update_data = {
+        "project_id": "test-project",
+        "type": "status_update",
+        "status": "in_progress",
+        "updates": {
+            "progress": 50,
+            "current_phase": "development"
+        }
+    }
+    message = CoreMessage(
+        topic="project.update",
+        content=update_data,
+        sender="test"
+    )
+    
+    response = await agent._handle_project_update(message)
+    assert response.topic == "project.updated"
+    assert response.content["project_id"] == "test-project"
+
+@pytest.mark.asyncio
+async def test_save_to_memory(agent):
+    """Test saving data to memory."""
+    key = "test:key"
+    data = {"test": "data"}
+    await agent.save_to_memory(key, data)
+    agent.memory.store.assert_called_once_with(key, data)  # Assert store was called
+
+@pytest.mark.asyncio
+async def test_get_active_projects(agent):
+    """Test getting active projects."""
+    projects = await agent._get_active_projects()
+    assert isinstance(projects, list)
+
+@pytest.mark.asyncio
+async def test_handle_error(agent):
+    """Test error handling."""
+    error = Exception("Test error")
+    await agent.handle_error(error)
+    agent.metrics.error_count.inc.assert_called_once()
+
+@pytest.mark.asyncio
+async def test_cleanup(agent):
+    """Test agent cleanup."""
+    await agent.cleanup()
+    agent.memory.cleanup.assert_called_once()  # Assert cleanup was called
 
 @pytest.mark.asyncio
 async def test_invalid_message_type(agent):
