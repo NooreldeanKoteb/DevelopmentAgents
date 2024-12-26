@@ -1,6 +1,6 @@
 from typing import Dict, Any, List, Optional
 from datetime import datetime
-from core.schemas import TaskSchema, TaskStatus, TaskPriority
+from core.schemas import TaskSchema, TaskStatus, TaskPriority, BusinessImpact
 from agents.project_manager.persistence import PersistenceManager
 from .errors import TaskManagementError
 
@@ -56,7 +56,7 @@ class TaskManager:
 
     async def get_tasks_by_agent(self, agent_id: str) -> List[TaskSchema]:
         """Retrieve all tasks assigned to a specific agent."""
-        return [task for task in self.tasks.values() if task.assigned_agent == agent_id]
+        return [task for task in self.tasks.values() if task.assigned_to == agent_id]
 
     async def create_task(self, task_data: Dict[str, Any]) -> TaskSchema:
         """Create a new task."""
@@ -71,13 +71,40 @@ class TaskManager:
             if task.priority == priority
         ]
 
-    async def update_task_status(self, task_id: str, status: TaskStatus) -> Optional[TaskSchema]:
-        """Update task status."""
-        if task_id in self.tasks:
-            self.tasks[task_id].status = status
-            return self.tasks[task_id]
-        return None 
-
+    async def update_task_status(
+        self,
+        tasks: List[TaskSchema],
+        task_id: str,
+        new_status: TaskStatus
+    ) -> List[TaskSchema]:
+        """Update task status and manage dependencies."""
+        try:
+            task_map = {task.id: task for task in tasks}
+            
+            if task_id not in task_map:
+                # Return original tasks instead of raising error
+                return tasks
+                
+            task = task_map[task_id]
+            task.status = new_status
+            
+            if new_status == TaskStatus.COMPLETED:
+                # Update dependent tasks
+                for dependent_task in tasks:
+                    if task_id in dependent_task.dependencies:
+                        if all(
+                            task_map[dep].status == TaskStatus.COMPLETED
+                            for dep in dependent_task.dependencies
+                        ):
+                            dependent_task.status = TaskStatus.PENDING
+                            
+            return list(task_map.values())
+            
+        except Exception as e:
+            raise TaskManagementError(
+                f"Failed to update task status: {str(e)}"
+            )
+            
     async def create_tasks(
         self,
         plan: Dict[str, Any]
@@ -88,12 +115,18 @@ class TaskManager:
             
             for phase in plan["phases"]:
                 for task_spec in phase["tasks"]:
+                    # Convert business_impact string to enum if needed
+                    business_impact = task_spec["business_impact"]
+                    if isinstance(business_impact, str):
+                        business_impact = BusinessImpact[business_impact]
+                    
                     task = TaskSchema(
                         id=f"task-{len(tasks)+1}",
                         name=task_spec["name"],
                         description=task_spec["description"],
                         status=TaskStatus.PENDING,
                         priority=self._determine_priority(task_spec),
+                        business_impact=business_impact,
                         dependencies=task_spec.get("dependencies", []),
                         estimated_duration=task_spec["estimated_duration"],
                         phase=phase["name"]
@@ -146,39 +179,6 @@ class TaskManager:
             
         except Exception as e:
             raise TaskManagementError(f"Failed to update tasks: {str(e)}")
-            
-    async def update_task_status(
-        self,
-        tasks: List[TaskSchema],
-        task_id: str,
-        new_status: TaskStatus
-    ) -> List[TaskSchema]:
-        """Update task status and manage dependencies."""
-        try:
-            task_map = {task.id: task for task in tasks}
-            
-            if task_id not in task_map:
-                raise TaskManagementError(f"Task {task_id} not found")
-                
-            task = task_map[task_id]
-            task.status = new_status
-            
-            if new_status == TaskStatus.COMPLETED:
-                # Update dependent tasks
-                for dependent_task in tasks:
-                    if task_id in dependent_task.dependencies:
-                        if all(
-                            task_map[dep].status == TaskStatus.COMPLETED
-                            for dep in dependent_task.dependencies
-                        ):
-                            dependent_task.status = TaskStatus.PENDING
-                            
-            return list(task_map.values())
-            
-        except Exception as e:
-            raise TaskManagementError(
-                f"Failed to update task status: {str(e)}"
-            )
             
     def _determine_priority(self, task_spec: Dict[str, Any]) -> TaskPriority:
         """Determine task priority based on specifications."""
