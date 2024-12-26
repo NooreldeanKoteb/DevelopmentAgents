@@ -6,9 +6,16 @@ from agents.base import Memory, MemoryError
 
 
 @pytest.fixture
-def memory():
+async def memory(redis_client):
     """Provide a memory instance."""
-    return Memory(redis_url="redis://localhost:6379/0")
+    memory = Memory(redis_client=redis_client)
+    try:
+        await memory.initialize()
+        yield memory
+    finally:
+        await memory.cleanup()
+        # Ensure connection is fully closed
+        await asyncio.sleep(0.1)
 
 @pytest.mark.asyncio
 async def test_memory_storage(memory):
@@ -43,27 +50,38 @@ async def test_memory_ttl(memory):
         assert await memory.retrieve("ttl_test") is None
         
     except asyncio.CancelledError:
-        # Ensure cleanup if test is cancelled during sleep
         await memory.clear("ttl_test")
         raise
 
 @pytest.mark.asyncio
 async def test_memory_listing(memory):
     """Test memory listing functionality."""
+    # Initialize memory
+    await memory.initialize()
+    
     # Store multiple items
     test_data = {
         "key1": "value1",
         "key2": "value2",
         "other": "value3"
     }
-    
+
+    # Store and verify each item
     for key, value in test_data.items():
         await memory.store(key, value)
-    
+        stored = await memory.retrieve(key)
+        assert stored == value
+
     # List memories with pattern
     memories = await memory.list_memories("key*")
+    
+    # Debug output
+    print(f"All keys: {await memory.redis.keys('*')}")
+    print(f"Matched memories: {memories}")
+    
     assert len(memories) == 2
     assert all(m["key"].startswith("key") for m in memories)
+    assert "other" not in [m["key"] for m in memories]
 
 @pytest.mark.asyncio
 async def test_memory_clear(memory):

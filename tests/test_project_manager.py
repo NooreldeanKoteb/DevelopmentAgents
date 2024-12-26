@@ -21,8 +21,21 @@ def sample_message():
         }
     }
 
+@pytest.fixture
+async def project_manager(redis_client, task_manager, resource_manager, planner):
+    """Create a project manager agent for testing."""
+    agent = ProjectManagerAgent(
+        name="Test Project Manager",
+        agent_type="project_manager",
+        task_service=task_manager,
+        resource_service=resource_manager,
+        planner_service=planner,
+        redis_client=redis_client
+    )
+    return agent
+
 @pytest.mark.asyncio
-async def test_process_message(sample_message):
+async def test_process_message(sample_message, redis_client):
     """Test project manager message processing."""
     # Create async mocks
     mock_task_manager = AsyncMock()
@@ -58,7 +71,8 @@ async def test_process_message(sample_message):
         agent_type="project_manager",
         task_service=mock_task_manager,
         resource_service=mock_resource_manager,
-        planner_service=mock_planner
+        planner_service=mock_planner,
+        redis_client=redis_client
     )
     
     # Set mocked metrics

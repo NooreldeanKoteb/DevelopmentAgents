@@ -8,16 +8,32 @@ from .memory import Memory
 from .context import Context
 from .errors import AgentError
 from abc import ABC, abstractmethod
+from redis import Redis
 
 class BaseAgent(ABC):
     """Base class for all agents in the system."""
     
-    def __init__(self, agent_id: str, name: str, agent_type: str):
-        """Initialize base agent."""
-        self.id = agent_id
+    def __init__(
+        self,
+        agent_id: str,
+        name: str,
+        agent_type: AgentType,
+        redis_client: Optional[Redis] = None,
+        redis_url: Optional[str] = None
+    ):
+        """Initialize the base agent."""
         self.agent_id = agent_id
         self.name = name
-        self.type = agent_type
+        self.agent_type = agent_type
+        
+        # Initialize memory with either redis_client or redis_url
+        if redis_client:
+            self.memory = Memory(redis_client=redis_client)
+        elif redis_url:
+            self.memory = Memory(redis_url=redis_url)
+        else:
+            raise ValueError("Either redis_client or redis_url must be provided")
+        
         self.status = AgentStatus.INITIALIZING
         self.message_broker = None
         self.logger = CoreLogger()
@@ -26,7 +42,6 @@ class BaseAgent(ABC):
         self._initialized = False
         
         self.state: Dict[str, Any] = {}
-        self.memory = Memory()
         self.context = Context()
         
     async def initialize(self) -> None:

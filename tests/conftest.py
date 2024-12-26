@@ -4,13 +4,14 @@ import sys
 from redis.asyncio import Redis, ConnectionPool
 from typing import AsyncGenerator
 from prometheus_client import REGISTRY, CollectorRegistry
-from agents.project_manager.persistence import PersistenceManager
+from unittest.mock import MagicMock, AsyncMock
+from core.integration import CoreIntegration
 from agents.project_manager.task_manager import TaskManager
-from agents.project_manager.resource_manager import ResourceManager
 from agents.project_manager.planner import ProjectPlanner
+from agents.project_manager.persistence import PersistenceManager
+from agents.project_manager.resource_manager import ResourceManager
 from agents.project_manager.agent import ProjectManagerAgent
 from core.config.settings import Settings
-from core.integration import CoreIntegration
 from core.storage.message_store import MessageStore
 from core.monitoring import CoreMetrics
 
@@ -20,19 +21,28 @@ def pytest_configure(config):
         "markers",
         "asyncio: mark test as requiring asyncio"
     )
-    config.option.asyncio_mode = "auto"
-
-# Track all Redis connections
-_redis_pools = set()
-_redis_clients = set()
 
 @pytest.fixture(scope="session")
-def event_loop():
-    """Create an event loop for the session."""
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    yield loop
-    loop.close()
+def core_metrics():
+    """Provide a mock CoreMetrics instance."""
+    metrics = MagicMock()
+    
+    # Mock common metric methods
+    metrics.message_count = MagicMock()
+    metrics.error_count = MagicMock()
+    metrics.message_processing_time = MagicMock()
+    metrics.message_processing_time.time = MagicMock(return_value=MagicMock())
+    metrics.error_types = MagicMock()
+    metrics.error_types.labels = MagicMock(return_value=MagicMock())
+    
+    # Add any other metric methods that might be needed
+    metrics.openai_tokens = MagicMock()
+    metrics.openai_latency = MagicMock()
+    metrics.openai_latency.time = MagicMock(return_value=MagicMock())
+    metrics.task_completion_time = MagicMock()
+    metrics.task_completion_time.time = MagicMock(return_value=MagicMock())
+    
+    return metrics
 
 @pytest.fixture(autouse=True)
 def clean_prometheus_registry():
@@ -46,24 +56,25 @@ def clean_prometheus_registry():
 async def redis_pool():
     """Create a Redis connection pool."""
     pool = ConnectionPool(host='localhost', port=6379, db=0)
-    _redis_pools.add(pool)
     try:
         yield pool
     finally:
-        _redis_pools.discard(pool)
         await pool.disconnect()
 
 @pytest.fixture(scope="function")
 async def redis_client(redis_pool):
     """Create a Redis client for testing."""
     client = Redis(connection_pool=redis_pool, decode_responses=True)
-    _redis_clients.add(client)
     try:
         await client.flushdb()
         yield client
     finally:
-        _redis_clients.discard(client)
-        await client.aclose()
+        try:
+            if hasattr(client, 'connection_pool'):
+                await client.connection_pool.disconnect()
+            await client.aclose()
+        except Exception:
+            pass
 
 @pytest.fixture(scope="function")
 async def persistence_manager(redis_client):
@@ -112,43 +123,12 @@ async def core_integration():
         await integration.cleanup()
 
 @pytest.fixture(autouse=True)
-async def cleanup_redis():
-    """Ensure all Redis connections are closed."""
-    yield
-    
-    loop = asyncio.get_running_loop()
-    
-    # Close all Redis clients first
-    for client in list(_redis_clients):
-        try:
-            await client.aclose()
-        except Exception:
-            pass
-        _redis_clients.discard(client)
-    
-    # Then close all pools
-    for pool in list(_redis_pools):
-        try:
-            await pool.disconnect()
-        except Exception:
-            pass
-        _redis_pools.discard(pool)
-
-    # Wait a bit for connections to fully close
-    await asyncio.sleep(0.1)
-
-@pytest.fixture(autouse=True)
 async def cleanup_after_test():
     """Cleanup after each test."""
     yield
     
     try:
         loop = asyncio.get_running_loop()
-        
-        # First cleanup Redis
-        await cleanup_redis.__wrapped__()
-        
-        # Then handle remaining tasks
         tasks = [t for t in asyncio.all_tasks(loop) 
                 if t is not asyncio.current_task(loop)]
         
@@ -204,3 +184,19 @@ def clean_registry():
     for collector in collectors:
         REGISTRY.unregister(collector)
     yield
+
+@pytest.fixture(autouse=True)
+async def cleanup_connections():
+    """Ensure all Redis connections are cleaned up after each test."""
+    yield
+    await asyncio.sleep(0.1)  # Allow time for connections to close
+
+@pytest.fixture(autouse=True)
+async def cleanup_redis():
+    """Ensure Redis connections are properly closed."""
+    yield
+    # Give event loop time to process pending Redis operations
+    await asyncio.sleep(0.1)
+    # Force garbage collection to ensure __del__ methods are called
+    import gc
+    gc.collect()

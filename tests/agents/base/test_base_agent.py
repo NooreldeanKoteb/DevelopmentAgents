@@ -7,7 +7,7 @@ from core.schemas.messages import MessageSchema, MessageType, MessageStatus
 from core.schemas.enums import AgentType
 
 @pytest.fixture
-def test_agent():
+async def test_agent(redis_client):
     """Fixture to provide a test agent instance."""
     class TestAgent(BaseAgent):
         agent_type = AgentType.PROJECT_MANAGER
@@ -45,7 +45,8 @@ def test_agent():
     return TestAgent(
         agent_id="test-agent-1",
         name="Test Agent",
-        agent_type=AgentType.PROJECT_MANAGER
+        agent_type=AgentType.PROJECT_MANAGER,
+        redis_client=redis_client
     )
 
 @pytest.fixture

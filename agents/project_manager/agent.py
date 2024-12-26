@@ -14,6 +14,7 @@ from .planner import ProjectPlanner
 from .task_manager import TaskManager
 from .resource_manager import ResourceManager
 from agents.project_manager.persistence import PersistenceManager
+from redis import Redis
 
 class ProjectManagerAgent(BaseAgent):
     """Agent responsible for managing project resources and tasks."""
@@ -21,17 +22,26 @@ class ProjectManagerAgent(BaseAgent):
     def __init__(
         self,
         name: str,
-        agent_type: str = "project_manager",
-        **kwargs
+        agent_type: str,
+        task_service: TaskManager,
+        resource_service: ResourceManager,
+        planner_service: ProjectPlanner,
+        redis_client: Optional[Redis] = None,
+        redis_url: Optional[str] = None
     ):
+        """Initialize the project manager agent."""
+        self.agent_id = str(uuid.uuid4())  # Set agent_id before super().__init__
         super().__init__(
-            agent_id=kwargs.get('agent_id', str(uuid.uuid4())),
+            agent_id=self.agent_id,
             name=name,
-            agent_type=agent_type
+            agent_type=AgentType.PROJECT_MANAGER,
+            redis_client=redis_client,
+            redis_url=redis_url
         )
-        self.task_service = kwargs.get('task_service')
-        self.resource_service = kwargs.get('resource_service')
-        self.planner_service = kwargs.get('planner_service')
+        
+        self.task_service = task_service
+        self.resource_service = resource_service
+        self.planner_service = planner_service
         
     async def initialize(self) -> None:
         """Initialize project manager components."""
@@ -120,7 +130,7 @@ class ProjectManagerAgent(BaseAgent):
                 "tasks": tasks,
                 "resources": resources
             },
-            sender=self.id
+            sender=self.agent_id
         )
         
     async def _handle_project_update(self, message: CoreMessage) -> Optional[CoreMessage]:
@@ -167,7 +177,7 @@ class ProjectManagerAgent(BaseAgent):
                 "tasks": project_data["tasks"],
                 "resources": project_data["resources"]
             },
-            sender=self.id
+            sender=self.agent_id
         )
         
     async def _handle_task_status(self, message: CoreMessage) -> Optional[CoreMessage]:
@@ -208,7 +218,7 @@ class ProjectManagerAgent(BaseAgent):
                 "tasks": updated_tasks,
                 "resources": project_data["resources"]
             },
-            sender=self.id
+            sender=self.agent_id
         )
         
     async def _handle_agent_status(self, message: CoreMessage) -> Optional[CoreMessage]:
@@ -290,7 +300,7 @@ class ProjectManagerAgent(BaseAgent):
             resources = await self.resource_service.get_resources()
             timeline = await self.planner_service.generate_timeline([task])
             
-            return BaseMessage(  # Use BaseMessage for agent-to-agent communication
+            return BaseMessage(
                 type="task.created",
                 content={
                     "task": task,
@@ -298,7 +308,7 @@ class ProjectManagerAgent(BaseAgent):
                     "timeline": timeline,
                     "action_type": "task_creation"
                 },
-                sender=self.id
+                sender=self.agent_id
             )
         except Exception as e:
             raise AgentError(f"Failed to create task: {str(e)}")
@@ -310,6 +320,6 @@ class ProjectManagerAgent(BaseAgent):
             message = CoreMessage(
                 topic=topic,
                 content=content,
-                sender=self.id
+                sender=self.agent_id
             )
             await self.message_broker.publish(message)
