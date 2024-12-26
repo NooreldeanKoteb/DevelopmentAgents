@@ -1,8 +1,8 @@
 from enum import Enum
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Any
 from datetime import datetime
 from uuid import UUID, uuid4
-from pydantic import Field
+from pydantic import Field, ConfigDict, field_serializer
 
 from .base import BaseSchema
 
@@ -41,6 +41,8 @@ class MessageStatus(str, Enum):
 
 class MessageSchema(BaseSchema):
     """Message schema definition."""
+    model_config = ConfigDict()
+
     id: UUID = Field(default_factory=uuid4)
     type: MessageType
     priority: MessagePriority = MessagePriority.NORMAL
@@ -55,8 +57,8 @@ class MessageSchema(BaseSchema):
     max_retries: int = 3
     error: Optional[Dict[str, Any]] = None
 
-    class Config:
-        json_encoders = {
-            UUID: str,
-            datetime: lambda v: v.isoformat()
-        } 
+    @field_serializer('*', when_used='json')
+    def serialize_datetime(self, value: Any, _info) -> Any:
+        if isinstance(value, datetime):
+            return value.isoformat()
+        return value

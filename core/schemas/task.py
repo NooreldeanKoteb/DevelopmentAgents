@@ -1,9 +1,19 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict, field_serializer
 from datetime import datetime
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 from .enums import TaskStatus, TaskPriority, BusinessImpact
 
 class TaskSchema(BaseModel):
+    model_config = ConfigDict(
+        validate_assignment = True
+    )
+
+    @field_serializer('*', when_used='json')
+    def serialize_datetime(self, value: Any, _info) -> Any:
+        if isinstance(value, datetime):
+            return value.isoformat()
+        return value
+        
     # Required fields
     id: str = Field(..., description="Unique identifier for the task")
     name: str = Field(..., description="Name of the task")
@@ -32,9 +42,3 @@ class TaskSchema(BaseModel):
     requirements: Dict = Field(default_factory=dict, description="Task requirements")
     completion_criteria: List[str] = Field(default_factory=list, description="Completion criteria")
     notes: str = Field(default="", description="Additional notes")
-
-    class Config:
-        validate_assignment = True
-        json_encoders = {
-            datetime: lambda v: v.isoformat()
-        }

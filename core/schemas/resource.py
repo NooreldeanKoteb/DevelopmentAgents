@@ -1,9 +1,11 @@
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, validator, ConfigDict, field_serializer, field_validator
 from datetime import datetime
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Any
 from .enums import ResourceType, ResourceStatus
 
 class ResourceSchema(BaseModel):
+    model_config = ConfigDict()
+
     id: str = Field(..., description="Unique identifier")
     name: str = Field(..., description="Resource name")
     type: ResourceType = Field(..., description="Resource type")
@@ -16,14 +18,35 @@ class ResourceSchema(BaseModel):
     updated_at: Optional[datetime] = Field(default_factory=datetime.now, description="Last update timestamp")
     metadata: Dict = Field(default_factory=dict, description="Additional metadata")
 
-    @validator('current_usage')
-    def validate_usage(cls, v, values):
-        if 'capacity' in values and v > values['capacity']:
-            raise ValueError('Current usage cannot exceed capacity')
-        return v
+    @field_serializer('*', when_used='json')
+    def serialize_datetime(self, value: Any, _info) -> Any:
+        if isinstance(value, datetime):
+            return value.isoformat()
+        return value
+    
+    @field_validator('current_usage')
+    @classmethod
+    def validate_usage(cls, value: float, info: Any) -> float:
+        if value < 0:
+            raise ValueError("Usage cannot be negative")
+        
+        # Get capacity value from the data
+        capacity = info.data.get('capacity', 1.0)
+        if value > capacity:
+            raise ValueError(f"Current usage ({value}) cannot exceed capacity ({capacity})")
+        
+        return value
 
-    class Config:
-        validate_assignment = True
-        json_encoders = {
-            datetime: lambda v: v.isoformat()
-        }
+    # Add model validation to ensure usage <= capacity
+    @field_validator('capacity')
+    @classmethod
+    def validate_capacity(cls, value: float, info: Any) -> float:
+        if value < 0:
+            raise ValueError("Capacity cannot be negative")
+        
+        # Check if current_usage exists and validate against it
+        current_usage = info.data.get('current_usage', 0.0)
+        if current_usage > value:
+            raise ValueError(f"Capacity ({value}) cannot be less than current usage ({current_usage})")
+        
+        return value

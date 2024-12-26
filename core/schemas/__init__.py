@@ -30,6 +30,9 @@ from .projects import (
     ProjectPhase
 )
 
+from .messages import MessageSchema, MessageType, MessageStatus
+from .enums import AgentType
+
 __all__ = [
     # Base schemas
     'BaseSchema',
@@ -56,5 +59,13 @@ __all__ = [
     # Project schemas and enums
     'ProjectSchema',
     'ProjectStatus',
-    'ProjectPhase'
+    'ProjectPhase',
+    
+    # Message schemas and enums
+    'MessageSchema',
+    'MessageType',
+    'MessageStatus',
+    
+    # Agent type enums
+    'AgentType'
 ] 

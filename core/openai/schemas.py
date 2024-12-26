@@ -1,6 +1,6 @@
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Any
 from datetime import datetime
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_serializer
 import hashlib
 import json
 
@@ -36,9 +36,6 @@ class OpenAIResponse(BaseModel):
         arbitrary_types_allowed=True,
         validate_assignment=True,
         extra='forbid',
-        json_encoders={
-            datetime: lambda v: v.isoformat()
-        }
     )
 
     content: Dict[str, Any]
@@ -46,6 +43,12 @@ class OpenAIResponse(BaseModel):
     usage: TokenUsage
     created_at: datetime = Field(default_factory=datetime.now)
 
+    @field_serializer('*', when_used='json')
+    def serialize_datetime(self, value: Any, _info) -> Any:
+        if isinstance(value, datetime):
+            return value.isoformat()
+        return value
+    
     def model_dump(self, **kwargs) -> Dict[str, Any]:
         """Override model_dump to handle datetime serialization."""
         data = super().model_dump(**kwargs)

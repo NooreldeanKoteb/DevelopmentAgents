@@ -52,6 +52,7 @@ class CoreIntegration:
             return
             
         try:
+            self.loop = asyncio.get_running_loop()
             # Create a copy of settings and update with dynamic ports
             self.settings = deepcopy(get_settings())
             self.settings.SERVER_PORT = self._get_free_port()

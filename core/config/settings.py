@@ -1,7 +1,7 @@
 from pydantic_settings import BaseSettings
 from typing import Optional
 from enum import Enum
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 class Environment(str, Enum):
     """Application environment."""
@@ -11,7 +11,11 @@ class Environment(str, Enum):
 
 class Settings(BaseSettings):
     """Application settings with environment variable support."""
-    
+    model_config = ConfigDict(
+        env_file = ".env",
+        env_file_encoding = 'utf-8',
+        case_sensitive = True
+    )
     # Environment
     ENVIRONMENT: Environment = Environment.DEVELOPMENT
     DEBUG: bool = False
@@ -32,10 +36,7 @@ class Settings(BaseSettings):
     PROMETHEUS_PORT: int = 9090
     SERVER_PORT: int = 8000  # Add default server port
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = 'utf-8'
-        case_sensitive = True
+
 
     def validate_integration(self) -> bool:
         """Validate core integration settings."""
