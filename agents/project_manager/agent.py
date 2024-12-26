@@ -106,8 +106,8 @@ class ProjectManagerAgent(BaseAgent):
         # Generate project plan
         plan = await self.planner.create_plan(project_spec)
         
-        # Create tasks from plan
-        tasks = await self.task_manager.create_tasks(plan)
+        # Create tasks from plan using task_service instead of task_manager
+        tasks = await self.task_service.create_tasks(plan)
         
         # Allocate resources
         resources = await self.resource_manager.allocate_resources(tasks)
@@ -296,9 +296,9 @@ class ProjectManagerAgent(BaseAgent):
     async def _handle_task_creation(self, message: BaseMessage) -> BaseMessage:
         """Handle task creation request."""
         try:
-            task = await self.task_service.create_task(message.content)
+            task = await self.task_service.create_task(message.content)  # Use task_service
             resources = await self.resource_service.get_resources()
-            timeline = await self.planner_service.generate_timeline([task])
+            timeline = await self.planner.generate_timeline([task])
             
             return BaseMessage(
                 type="task.created",
