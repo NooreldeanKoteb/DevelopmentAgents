@@ -241,4 +241,8 @@ class PersistenceManager:
     async def cleanup(self):
         """Cleanup resources."""
         if hasattr(self, 'redis'):
-            await self.redis.aclose()
+            try:
+                await self.redis.flushdb()
+                await self.redis.aclose()
+            except Exception:
+                pass

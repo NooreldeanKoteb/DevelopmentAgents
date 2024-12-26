@@ -19,9 +19,13 @@ from core.schemas.task import TaskSchema
 async def persistence_manager():
     """Provide a persistence manager instance."""
     manager = PersistenceManager(redis_url="redis://localhost:6379/0")
-    yield manager
-    # Cleanup after tests
-    await manager.redis.flushdb()
+    try:
+        yield manager
+    finally:
+        # Cleanup after tests
+        if hasattr(manager, 'redis'):
+            await manager.redis.flushdb()
+            await manager.redis.aclose()
 
 @pytest.mark.asyncio
 async def test_task_crud_operations(persistence_manager):
