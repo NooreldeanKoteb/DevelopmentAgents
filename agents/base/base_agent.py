@@ -68,16 +68,24 @@ class BaseAgent(ABC):
     async def process_message(self, message: Message) -> Any:
         """Process incoming messages."""
         try:
+            message_type = getattr(message, 'type', None) or getattr(message, 'topic', 'unknown')
+            
             self.logger.logger.info(
                 f"Processing message",
                 extra={
                     "agent_id": self.agent_id,
                     "message_id": message.id,
-                    "message_type": message.type
+                    "message_type": message_type
                 }
             )
             
-            self.metrics.message_count.inc()
+            # Include all required labels when incrementing metrics
+            self.metrics.message_count.labels(
+                agent_id=self.agent_id,
+                agent_type=self.agent_type.value,
+                type=message_type  # Added type label
+            ).inc()
+            
             return await self._handle_message_type(message)
             
         except Exception as e:
@@ -99,11 +107,23 @@ class BaseAgent(ABC):
                 "error_type": type(error).__name__
             }
         )
-        self.metrics.error_count.inc()
+        self.metrics.error_count.labels(
+            agent_id=self.agent_id,
+            agent_type=self.agent_type.value
+        ).inc()
         
     async def save_to_memory(self, key: str, value: Any) -> None:
         """Save data to agent memory."""
-        await self.memory.store(key, value)
+        try:
+            # Convert Pydantic models to dict if present
+            if hasattr(value, 'model_dump'):
+                value = value.model_dump()
+            elif hasattr(value, 'dict'):
+                value = value.dict()
+            
+            await self.memory.store(key, value)
+        except Exception as e:
+            raise AgentError(f"Failed to save to memory: {str(e)}")
         
     async def recall_from_memory(self, key: str) -> Any:
         """Recall data from agent memory."""

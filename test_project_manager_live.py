@@ -33,6 +33,16 @@ async def setup_redis():
         print("Error: Redis server is not running. Please start Redis first.")
         raise
 
+async def cleanup_redis(redis_client):
+    """Properly cleanup Redis connection."""
+    try:
+        await redis_client.flushdb()
+        await redis_client.aclose()  # Use aclose() instead of close()
+        # Give event loop time to process cleanup
+        await asyncio.sleep(0.1)
+    except Exception as e:
+        print(f"Error during Redis cleanup: {str(e)}")
+
 async def main():
     try:
         # Clear metrics before anything else
@@ -50,47 +60,62 @@ async def main():
             persistence = PersistenceManager(redis_client=redis_client)
             task_service = TaskManager(persistence=persistence)
             resource_service = ResourceManager()
-            planner_service = ProjectPlanner()
             print("Services initialized")
 
             print("\nCreating Project Manager agent...")
-            # Create Project Manager agent
+            # Create Project Manager agent without planner first
             agent = ProjectManagerAgent(
                 name="Test Project Manager",
                 agent_type="project_manager",
                 task_service=task_service,
                 resource_service=resource_service,
-                planner_service=planner_service,
+                planner_service=None,  # Set to None initially
                 redis_client=redis_client
             )
 
             print("Initializing agent...")
-            await agent.initialize()
+            await agent.initialize()  # This will create the planner with agent reference
             print("Agent initialized successfully")
 
             try:
                 # Project specification
                 project_spec = {
                     "id": "test-project-1",
-                    "name": "Build REST API",
+                    "name": "social media travel app",
                     "description": """
-                    Create a REST API with the following features:
+                    Create a social media travel app following features:
                     - User authentication
                     - CRUD operations for posts
-                    - File upload capability
-                    - Rate limiting
-                    - API documentation
+                    - Explore new places
+                    - Share your travel experiences
+                    - Follow other users
+                    - Like and comment on posts
+                    - Search for places
+                    - Create a community for travel enthusiasts
+                    - Share your travel experiences
+                    - Follow other users
+                    - Like and comment on posts
+                    - Search for places
+                    - Create a community for travel enthusiasts
+
+                    MAKE SURE ALL FIELDS ARE FILLED
                     """,
                     "requirements": {
-                        "language": "Python",
-                        "framework": "FastAPI",
-                        "database": "PostgreSQL",
+                        "language": "node.js",
+                        "framework": "React Native",
+                        "database": "MongoDB",
                         "features": [
                             "authentication",
                             "crud",
                             "file_upload",
                             "rate_limiting",
-                            "documentation"
+                            "documentation",
+                            "explore_new_places",
+                            "share_travel_experiences",
+                            "follow_other_users",
+                            "like_and_comment_on_posts",
+                            "search_for_places",
+                            "create_a_community_for_travel_enthusiasts"
                         ]
                     },
                     "priority": TaskPriority.HIGH,
@@ -107,7 +132,8 @@ async def main():
 
                 print("\nSending project creation request...")
                 response = await agent.process_message(message)
-                
+                print(f"Response: {response}")
+
                 print("\nProject Plan Created:")
                 print("====================")
                 print(f"Project: {project_spec['name']}")
@@ -137,6 +163,10 @@ async def main():
                 print("\nCleaning up agent...")
                 await agent.cleanup()
                 print("Agent cleanup complete")
+
+            print("\nClosing Redis connection...")
+            await cleanup_redis(redis_client)
+            print("Redis connection closed")
 
         finally:
             print("\nClosing Redis connection...")

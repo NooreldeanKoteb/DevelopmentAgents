@@ -3,6 +3,8 @@ from datetime import datetime, timedelta
 import asyncio
 import yaml
 from pathlib import Path
+import json
+from openai import OpenAIError
 
 from core.openai import OpenAIClient
 from core.schemas import TaskSchema, TaskStatus, TaskPriority
@@ -22,42 +24,47 @@ class ProjectPlanner:
         
     def _load_prompts(self) -> Dict[str, Any]:
         """Load prompts from YAML file."""
-        prompt_path = Path("prompts/project_manager/planning.yaml")
-        with open(prompt_path, 'r') as f:
-            return yaml.safe_load(f)
+        try:
+            prompt_path = Path("prompts/project_manager/planning.yaml")
+            with open(prompt_path, 'r') as f:
+                prompts = yaml.safe_load(f)
+                
+            # Validate the loaded prompts
+            if not isinstance(prompts, dict):
+                raise ValueError("Prompts file must contain a dictionary")
+                
+            required_sections = ["create_plan", "update_plan"]
+            for section in required_sections:
+                if section not in prompts:
+                    raise ValueError(f"Missing required section: {section}")
+                if "system" not in prompts[section] or "prompt" not in prompts[section]:
+                    raise ValueError(f"Missing system or prompt in section: {section}")
+                    
+            return prompts
+            
+        except Exception as e:
+            self.agent.logger.error(f"Error loading prompts: {str(e)}")
+            raise PlanningError(f"Failed to load prompts: {str(e)}")
         
     async def create_plan(self, project_spec: Dict[str, Any]) -> Dict[str, Any]:
-        """Create a project plan from specifications."""
+        """Create a project plan based on the project specification."""
         try:
-            # Get prompts
-            system_prompt = self.prompts["create_plan"]["system"]
-            user_prompt = self.prompts["create_plan"]["prompt"].format(
-                name=project_spec["name"],
-                description=project_spec["description"],
-                requirements=project_spec["requirements"]
-            )
+            # Format the prompt with project details
+            prompt = await self._format_planning_prompt(project_spec)
             
-            # Use agent's OpenAI client instead of own instance
-            response = await self.agent.openai.get_completion(
-                user_prompt,
-                system_prompt=system_prompt
-            )
+            # Get response from OpenAI using the agent's client
+            response = await self.agent.openai.get_completion(prompt)
             
-            # Parse and validate plan
-            plan = self._parse_plan_response(response.content)
+            # Parse and validate the response
+            plan = await self._parse_plan_response(response.content)
             
-            return {
-                "id": project_spec["id"],
-                "name": project_spec["name"],
-                "phases": plan["phases"],
-                "dependencies": plan["dependencies"],
-                "estimated_duration": plan["estimated_duration"],
-                "critical_path": plan["critical_path"],
-                "risk_assessment": plan["risk_assessment"],
-                "created_at": datetime.now().isoformat(),
-                "status": "created"
-            }
+            # Store the plan
+            await self._store_plan(project_spec["name"], plan)
             
+            return plan
+            
+        except OpenAIError as e:
+            raise PlanningError(f"OpenAI error while creating plan: {str(e)}")
         except Exception as e:
             raise PlanningError(f"Failed to create plan: {str(e)}")
             
@@ -98,11 +105,46 @@ class ProjectPlanner:
         except Exception as e:
             raise PlanningError(f"Failed to update plan: {str(e)}")
             
-    def _parse_plan_response(self, response: str) -> Dict[str, Any]:
-        """Parse and validate OpenAI response."""
-        # Implementation would parse JSON and validate structure
-        # For now, we'll assume response is already in correct format
-        return response
+    async def _parse_plan_response(self, response) -> Dict[str, Any]:
+        """Parse and validate the plan response from OpenAI."""
+        try:
+            # Check if response is already a dict
+            if isinstance(response, dict):
+                plan_data = response
+            else:
+                # Parse JSON string
+                plan_data = json.loads(response)
+                
+            # Validate required fields
+            required_fields = {"phases", "dependencies", "estimated_duration", "critical_path", "risk_assessment"}
+            missing_fields = required_fields - set(plan_data.keys())
+            
+            if missing_fields:
+                raise PlanningError(f"Missing required fields in plan: {missing_fields}")
+                
+            # Validate phases structure
+            for phase in plan_data["phases"]:
+                if not isinstance(phase.get("tasks"), list):
+                    raise PlanningError(f"Invalid tasks format in phase: {phase.get('name')}")
+                    
+                for task in phase["tasks"]:
+                    required_task_fields = {
+                        "name", "description", "estimated_duration",
+                        "dependencies", "required_skills", "resources"
+                    }
+                    missing_task_fields = required_task_fields - set(task.keys())
+                    
+                    if missing_task_fields:
+                        raise PlanningError(
+                            f"Missing required fields in task {task.get('name')}: {missing_task_fields}"
+                        )
+                        
+            return plan_data
+            
+        except json.JSONDecodeError as e:
+            raise PlanningError(f"Invalid JSON format: {str(e)}")
+        except Exception as e:
+            raise PlanningError(f"Error validating plan: {str(e)}")
 
     async def generate_timeline(self, tasks: List[TaskSchema]) -> Dict[str, Any]:
         """Generate project timeline from tasks."""
@@ -147,3 +189,80 @@ class ProjectPlanner:
     def _calculate_total_duration(self, tasks: List[TaskSchema]) -> float:
         """Calculate total project duration."""
         return sum(float(task.estimated_duration) for task in tasks)
+
+    async def _format_planning_prompt(self, project_spec: Dict[str, Any]) -> str:
+        """Format the planning prompt for OpenAI."""
+        return f"""
+        Create a detailed project plan for the following project specification:
+        
+        Project Name: {project_spec.get('name', 'Unnamed Project')}
+        Description: {project_spec.get('description', 'No description provided')}
+        Requirements: {project_spec.get('requirements', [])}
+        Constraints: {project_spec.get('constraints', {})}
+        
+        Please provide a JSON response with the following structure:
+        {{
+            "phases": [
+                {{
+                    "name": "phase_name",
+                    "description": "phase_description",
+                    "tasks": [
+                        {{
+                            "name": "task_name",
+                            "description": "task_description",
+                            "estimated_duration": float,
+                            "dependencies": ["task_id1", "task_id2"],
+                            "required_skills": ["skill1", "skill2"],
+                            "resources": ["resource1", "resource2"],
+                            "business_impact": "HIGH|MEDIUM|LOW",
+                            "priority": "HIGH|MEDIUM|LOW",
+                            "status": "PENDING"
+                        }}
+                    ]
+                }}
+            ],
+            "dependencies": [
+                {{
+                    "from": "task_id1",
+                    "to": "task_id2",
+                    "type": "finish_to_start"
+                }}
+            ],
+            "estimated_duration": float,
+            "critical_path": ["task_id1", "task_id2"],
+            "risk_assessment": {{
+                "level": "low|medium|high",
+                "factors": ["risk1", "risk2"],
+                "mitigations": ["mitigation1", "mitigation2"]
+            }}
+        }}
+        
+        Ensure all task IDs are unique and dependencies are valid.
+        Each task must include a business_impact field with values HIGH, MEDIUM, or LOW.
+        """
+
+    async def _store_plan(self, project_name: str, plan: Dict[str, Any]) -> None:
+        """Store the project plan in memory."""
+        try:
+            plan_key = f"plan:{project_name}"
+            
+            # Convert any TaskSchema objects to dictionaries
+            serialized_plan = {
+                "plan": {
+                    **plan,
+                    "tasks": [
+                        task.to_dict() if hasattr(task, 'to_dict') else task 
+                        for task in plan.get("tasks", [])
+                    ]
+                },
+                "created_at": datetime.now().isoformat(),
+                "status": "active"
+            }
+            
+            await self.agent.save_to_memory(
+                key=plan_key,
+                value=serialized_plan
+            )
+            
+        except Exception as e:
+            raise PlanningError(f"Failed to store plan: {str(e)}")

@@ -107,14 +107,14 @@ class ProjectManagerAgent(BaseAgent):
         """Handle new project request."""
         project_spec = message.content
         
-        # Generate project plan
-        plan = await self.planner.create_plan(project_spec)
+        # Generate project plan using planner_service instead of planner
+        plan = await self.planner_service.create_plan(project_spec)
         
-        # Create tasks from plan using task_service instead of task_manager
+        # Create tasks from plan using task_service
         tasks = await self.task_service.create_tasks(plan)
         
         # Allocate resources
-        resources = await self.resource_manager.allocate_resources(tasks)
+        resources = await self.resource_service.allocate_resources(tasks)
         
         # Store project context
         await self.save_to_memory(
@@ -130,7 +130,8 @@ class ProjectManagerAgent(BaseAgent):
         return CoreMessage(
             topic="project.created",
             content={
-                "project_id": project_spec["id"],
+                "project_id": project_spec['id'],
+                "plan": plan,
                 "tasks": tasks,
                 "resources": resources
             },
@@ -297,7 +298,10 @@ class ProjectManagerAgent(BaseAgent):
     async def handle_error(self, error: Exception) -> None:
         """Handle agent errors."""
         self.logger.logger.error(f"Error in ProjectManager: {str(error)}")
-        self.metrics.error_count.inc()
+        self.metrics.error_count.labels(
+            agent_id=self.agent_id,
+            agent_type=self.agent_type.value
+        ).inc()
 
     async def _handle_task_creation(self, message: BaseMessage) -> BaseMessage:
         """Handle task creation request."""

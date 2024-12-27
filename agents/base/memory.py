@@ -1,5 +1,5 @@
 from typing import Dict, Any, Optional, List, Union
-from datetime import timedelta
+from datetime import timedelta, datetime
 from redis.asyncio import Redis
 import json
 from agents.base.errors import MemoryError
@@ -22,13 +22,23 @@ class Memory:
         await self.redis.ping()
         self._initialized = True
 
-    async def store(self, key: str, value: Any, ttl: Optional[timedelta] = None) -> None:
+    async def store(self, key: str, value: Any) -> None:
         """Store data in memory."""
-        serialized = json.dumps(value)
-        if ttl:
-            await self.redis.setex(key, int(ttl.total_seconds()), serialized)
-        else:
+        try:
+            def serialize_value(v):
+                if isinstance(v, datetime):
+                    return v.isoformat()
+                elif hasattr(v, 'model_dump'):
+                    return v.model_dump()
+                elif hasattr(v, 'dict'):
+                    return v.dict()
+                return v
+
+            serialized_value = serialize_value(value)
+            serialized = json.dumps(serialized_value, default=lambda x: x.isoformat() if isinstance(x, datetime) else None)
             await self.redis.set(key, serialized)
+        except Exception as e:
+            raise MemoryError(f"Failed to store data: {str(e)}")
 
     async def retrieve(self, key: str, raise_error: bool = False) -> Optional[Any]:
         """Retrieve data from memory."""

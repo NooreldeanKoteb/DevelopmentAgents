@@ -5,12 +5,15 @@ create_plan:
     Always provide responses in valid JSON format with clear task dependencies and resource requirements.
 
   prompt: |
-    Create a detailed project plan for the following project:
+    Create a detailed project plan for the following project specification:
     
-    Project Name: {name}
-    Description: {description}
-    Requirements: {requirements}
-    
+    Project Name: {project[name]}
+    Description: {project[description]}
+    Requirements: {project[requirements]}
+    Priority: {project[priority]}
+    Business Impact: {project[business_impact]}
+    Estimated Duration: {project[estimated_duration]} days
+
     Please provide a JSON response with:
     1. Project phases with detailed tasks
     2. Clear task dependencies
@@ -18,41 +21,54 @@ create_plan:
     4. Required resources and skills
     5. Risk assessments
     6. Critical path identification
-    
+
     Expected JSON structure:
-    {
+    {{
       "phases": [
-        {
-          "name": "string",
-          "description": "string",
+        {{
+          "name": "phase_name",
+          "description": "phase_description",
           "tasks": [
-            {
-              "name": "string",
-              "description": "string",
-              "estimated_duration": "string",
-              "dependencies": ["task_ids"],
-              "required_skills": ["skills"],
-              "resources": {
-                "cpu": "int",
-                "memory": "int",
-                "storage": "int"
-              },
+            {{
+              "name": "task_name",
+              "description": "task_description",
+              "estimated_duration": float,  # in days
+              "dependencies": ["task_id1", "task_id2"],
+              "required_skills": ["skill1", "skill2"],
+              "resources": ["resource1", "resource2"],
+              "business_impact": "HIGH|MEDIUM|LOW",
+              "priority": "HIGH|MEDIUM|LOW",
+              "status": "PENDING",
+              "phase": "phase_name"
               "critical": "boolean",
               "risk_level": "string"
-            }
+            }}
           ]
-        }
+        }}
       ],
-      "dependencies": {
-        "task_id": ["dependent_task_ids"]
-      },
-      "estimated_duration": "string",
-      "critical_path": ["task_ids"],
-      "risk_assessment": {
+      "dependencies": [
+        {{
+          "from": "task_id1",
+          "to": "task_id2",
+          "type": "finish_to_start"
+        }}
+      ],
+      "estimated_duration": float,
+      "critical_path": ["task_id1", "task_id2"],
+      "risk_assessment": {{
         "high_risk_tasks": ["task_ids"],
-        "mitigation_strategies": {}
-      }
-    }
+        "level": "LOW|MEDIUM|HIGH",
+        "factors": ["risk1", "risk2"],
+        "mitigations": ["mitigation1", "mitigation2"]
+      }}
+    }}
+
+    Ensure:
+    1. All task IDs are unique
+    2. Dependencies are valid
+    3. Each task has appropriate business_impact and priority levels
+    4. Phases are logically ordered
+    5. Resource requirements are specific to the project technology stack
 
 update_plan:
   system: |
@@ -62,13 +78,13 @@ update_plan:
 
   prompt: |
     Update the following project plan with these changes:
-    
+
     Current Plan:
     {current_plan}
-    
+
     Requested Changes:
     {changes}
-    
+
     Please provide a JSON response with:
     1. Updated phases and tasks
     2. Modified dependencies
@@ -83,18 +99,18 @@ update_plan:
     - Resource allocations
     
     Expected JSON structure:
-    {
+    {{
       "phases": [...],
-      "dependencies": {...},
+      "dependencies": {{}},
       "estimated_duration": "string",
       "critical_path": ["task_ids"],
-      "impact_assessment": {
+      "impact_assessment": {{
         "affected_tasks": ["task_ids"],
         "schedule_impact": "string",
         "resource_impact": "string",
-        "risk_changes": {}
-      }
-    }
+        "risk_changes": {{}}
+      }}
+    }}
 
 analyze_dependencies:
   system: |
@@ -102,16 +118,16 @@ analyze_dependencies:
 
   prompt: |
     Analyze the following task dependencies for potential issues:
-    
+
     Tasks and Dependencies:
     {dependencies}
-    
+
     Please identify:
     1. Circular dependencies
     2. Missing dependencies
     3. Redundant dependencies
     4. Critical path bottlenecks
-    
+
     Provide recommendations for:
     1. Dependency optimization
     2. Parallel execution opportunities
@@ -123,16 +139,16 @@ estimate_resources:
 
   prompt: |
     Estimate resource requirements for the following tasks:
-    
+
     Tasks:
     {tasks}
-    
+
     Please provide detailed estimates for:
     1. Computing resources (CPU, memory, storage)
     2. Required skills and expertise
     3. Time allocation
     4. External dependencies
-    
+
     Consider:
     1. Task complexity
     2. Dependencies

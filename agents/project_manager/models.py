@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field, ConfigDict
 from core.schemas.enums import TaskStatus, TaskPriority, BusinessImpact
+import json
 
 class BaseProjectModel(BaseModel):
     """Base model with common configuration."""
@@ -9,8 +10,34 @@ class BaseProjectModel(BaseModel):
         arbitrary_types_allowed=True,
         validate_assignment=True,
         extra='forbid',
-        populate_by_name=True
+        populate_by_name=True,
+        json_encoders={
+            datetime: lambda v: v.isoformat()
+        }
     )
+
+    def model_dump(self, *args, **kwargs):
+        """Convert to dictionary with datetime handling."""
+        exclude_none = kwargs.pop('exclude_none', True)
+        by_alias = kwargs.pop('by_alias', True)
+        
+        dump = super().model_dump(
+            exclude_none=exclude_none,
+            by_alias=by_alias,
+            *args,
+            **kwargs
+        )
+        
+        # Convert datetime objects to ISO format strings
+        for k, v in dump.items():
+            if isinstance(v, datetime):
+                dump[k] = v.isoformat()
+        return dump
+
+    def model_dump_json(self, *args, **kwargs):
+        """Convert to JSON string."""
+        kwargs.setdefault('indent', 2)
+        return json.dumps(self.model_dump(*args, **kwargs))
 
 class TaskData(BaseProjectModel):
     id: str
@@ -22,8 +49,17 @@ class TaskData(BaseProjectModel):
     estimated_duration: float = 1.0
     assigned_agent: Optional[str] = None
     dependencies: List[str] = Field(default_factory=list)
+    resources: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary with proper datetime handling."""
+        return self.model_dump()
+
+    def to_json(self) -> str:
+        """Convert to JSON string."""
+        return self.model_dump_json()
 
 class ResourceData(BaseProjectModel):
     id: str

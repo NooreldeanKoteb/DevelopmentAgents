@@ -1,7 +1,8 @@
 from pydantic_settings import BaseSettings
-from typing import Optional
+from typing import Optional, Dict, Any, ClassVar
 from enum import Enum
 from pydantic import BaseModel, ConfigDict
+import os
 
 class Environment(str, Enum):
     """Application environment."""
@@ -21,7 +22,9 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     
     # OpenAI
-    OPENAI_API_KEY: str
+    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "dummy-key-for-testing")
+    if not OPENAI_API_KEY:
+        raise ValueError("OPENAI_API_KEY environment variable is not set")
     OPENAI_MODEL: str = "gpt-4-turbo-preview"
     TEMPERATURE: float = 0.7
     MAX_TOKENS: int = 2000
@@ -34,9 +37,19 @@ class Settings(BaseSettings):
     # Monitoring
     LOG_LEVEL: str = "INFO"
     PROMETHEUS_PORT: int = 9090
-    SERVER_PORT: int = 8000  # Add default server port
+    SERVER_PORT: int = 8000
 
-
+    # OpenAI Configuration
+    OPENAI_CONFIG: ClassVar[Dict[str, Any]] = {
+        "api_key": OPENAI_API_KEY,
+        "default_model": "gpt-4-turbo-preview",
+        "max_retries": 3,
+        "timeout": 30,
+        "rate_limits": {
+            "requests_per_minute": 60,
+            "tokens_per_minute": 90000
+        }
+    }
 
     def validate_integration(self) -> bool:
         """Validate core integration settings."""

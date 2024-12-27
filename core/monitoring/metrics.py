@@ -1,5 +1,5 @@
 from typing import Optional, Dict, Any
-from prometheus_client import Counter, REGISTRY
+from prometheus_client import Counter, REGISTRY, Histogram, Gauge
 
 class CoreMetrics:
     """Core metrics tracking for the entire system."""
@@ -15,11 +15,11 @@ class CoreMetrics:
     def _initialize_metrics(self):
         """Initialize metrics only if they don't exist."""
         if not self._metrics:
-            # Message metrics
+            # Message metrics with agent labels
             self._metrics['message_count'] = Counter(
                 'core_messages_total',
                 'Total messages processed',
-                ['type']
+                ['agent_id', 'agent_type', 'type']
             )
             
             # OpenAI metrics
@@ -34,10 +34,18 @@ class CoreMetrics:
                 ['model']
             )
             
+            # Add error count metric
+            self._metrics['error_count'] = Counter(
+                'agent_errors_total',
+                'Total number of errors encountered',
+                ['agent_id', 'agent_type']
+            )
+            
             # Set up property access
             self.message_count = self._metrics['message_count']
             self.token_counter = self._metrics['token_counter']
             self.cost_counter = self._metrics['cost_counter']
+            self.error_count = self._metrics['error_count']
             
             # Model rate configuration
             self.model_rates = {
@@ -70,3 +78,4 @@ class CoreMetrics:
                     continue
             cls._metrics = {}
             cls._instance = None
+
