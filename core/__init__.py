@@ -5,6 +5,7 @@ from .schemas import (
     AgentSchema, TaskSchema, ResourceSchema,
     AgentType, TaskStatus, ResourceType
 )
+from .monitoring.metrics import CoreMetrics
 
 __all__ = [
     # Config
@@ -25,4 +26,12 @@ __all__ = [
     'AgentType',
     'TaskStatus',
     'ResourceType'
+
+    # Monitoring
+    'CoreMetrics'
 ] 
+
+class Core:
+    def __init__(self):
+        self.metrics = CoreMetrics()
+        self.openai_client = OpenAIClient(metrics=self.metrics) 

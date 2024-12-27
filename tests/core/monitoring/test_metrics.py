@@ -1,12 +1,14 @@
 import pytest
-from prometheus_client import REGISTRY, CollectorRegistry
+from prometheus_client import REGISTRY
 from core.monitoring.metrics import CoreMetrics
 
 @pytest.fixture(autouse=True)
 def clean_registry():
     """Clean the metrics registry before each test."""
-    for collector in list(REGISTRY._collector_to_names.keys()):
+    collectors = list(REGISTRY._collector_to_names.keys())
+    for collector in collectors:
         REGISTRY.unregister(collector)
+    CoreMetrics.reset()
     yield
 
 @pytest.fixture
@@ -16,33 +18,43 @@ def metrics():
 
 def test_message_metrics(metrics):
     """Test message-related metrics."""
-    metrics.message_count.labels(topic="test", status="success").inc()
+    metrics.message_count.labels(type="test").inc()
     
     value = REGISTRY.get_sample_value(
         'core_messages_total',
-        {'topic': 'test', 'status': 'success'}
+        {'type': 'test'}
     )
     assert value == 1
 
-def test_openai_metrics(metrics):
-    """Test OpenAI metrics."""
-    # Increment metrics
-    metrics.openai_tokens.labels(
-        model="gpt-4",
-        operation="completion"
-    ).inc(100)
+def test_token_usage_tracking(metrics):
+    """Test OpenAI token usage tracking."""
+    metrics.track_token_usage("gpt-4", 100, 50)
     
-    metrics.openai_cost.labels(model="gpt-4").inc(0.02)
-    
-    # Get values using exact metric names
     tokens = REGISTRY.get_sample_value(
-        'core_openai_tokens_total',  # Make sure this matches the name in CoreMetrics
-        {'model': 'gpt-4', 'operation': 'completion'}
-    )
-    cost = REGISTRY.get_sample_value(
-        'core_openai_cost_total',  # Updated to match CoreMetrics
+        'openai_tokens_total',
         {'model': 'gpt-4'}
     )
+    assert tokens == 150
     
-    assert tokens == 100
-    assert cost == 0.02 
+    cost = REGISTRY.get_sample_value(
+        'openai_cost_total',
+        {'model': 'gpt-4'}
+    )
+    assert cost > 0
+
+def test_multiple_models(metrics):
+    """Test tracking multiple models."""
+    metrics.track_token_usage("gpt-4", 100, 50)
+    metrics.track_token_usage("gpt-3.5-turbo", 200, 100)
+    
+    gpt4_tokens = REGISTRY.get_sample_value(
+        'openai_tokens_total',
+        {'model': 'gpt-4'}
+    )
+    gpt35_tokens = REGISTRY.get_sample_value(
+        'openai_tokens_total',
+        {'model': 'gpt-3.5-turbo'}
+    )
+    
+    assert gpt4_tokens == 150
+    assert gpt35_tokens == 300

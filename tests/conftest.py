@@ -166,23 +166,17 @@ async def clean_redis():
         await redis.aclose()
 
 @pytest.fixture(autouse=True)
-def clean_metrics():
-    """Clean Prometheus metrics before each test."""
-    CoreMetrics.reset()
-    for collector in list(REGISTRY._collector_to_names.keys()):
-        REGISTRY.unregister(collector)
-
-@pytest.fixture(scope="function")
-async def message_store(redis_client):
-    """Create a message store for testing."""
-    return MessageStore(redis=redis_client)
-
-@pytest.fixture(autouse=True)
 def clean_registry():
-    """Clean up the Prometheus registry between tests."""
+    """Clean the metrics registry before each test."""
+    # First reset CoreMetrics singleton
+    CoreMetrics.reset()
+    # Then clean registry
     collectors = list(REGISTRY._collector_to_names.keys())
     for collector in collectors:
-        REGISTRY.unregister(collector)
+        try:
+            REGISTRY.unregister(collector)
+        except KeyError:
+            continue
     yield
 
 @pytest.fixture(autouse=True)

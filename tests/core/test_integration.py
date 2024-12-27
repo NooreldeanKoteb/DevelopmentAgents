@@ -28,25 +28,22 @@ async def cleanup_ports():
     await asyncio.sleep(0.1)
 
 @pytest.fixture
-async def core():
-    """Provide a CoreIntegration instance with mocked services."""
-    with patch('redis.asyncio.Redis.ping', new_callable=AsyncMock) as mock_ping, \
-         patch('core.monitoring.CoreMetrics') as mock_metrics, \
-         patch('core.monitoring.CoreLogger') as mock_logger, \
-         patch('prometheus_client.start_http_server') as mock_prometheus:  # Mock Prometheus server
-            
-        mock_ping.return_value = True
-        integration = CoreIntegration()
-        await integration.initialize()
+async def core(clean_registry):
+    """Provide a CoreIntegration instance."""
+    integration = CoreIntegration()
+    await integration.initialize()
+    try:
         yield integration
+    finally:
         await integration.cleanup()
 
 @pytest.fixture(autouse=True)
 def clean_registry():
-    """Clean up the Prometheus registry between tests."""
+    """Clean the metrics registry before each test."""
     collectors = list(REGISTRY._collector_to_names.keys())
     for collector in collectors:
         REGISTRY.unregister(collector)
+    CoreMetrics.reset()
     yield
 
 @pytest.mark.asyncio
@@ -106,20 +103,31 @@ async def test_metrics_integration(core):
     """Test metrics recording."""
     # Initialize metrics directly
     core.metrics = CoreMetrics()
-    
+
     # Record a message metric
-    core.metrics.message_count.labels(
-        topic="test",
-        status="success"
-    ).inc()
+    core.metrics.message_count.labels(type="test").inc()
     
-    # Check metrics
-    message_count = REGISTRY.get_sample_value(
+    # Verify metric was recorded
+    value = REGISTRY.get_sample_value(
         'core_messages_total',
-        {'topic': 'test', 'status': 'success'}
+        {'type': 'test'}
     )
-    assert message_count is not None
-    assert message_count > 0
+    assert value == 1
+
+    # Test OpenAI metrics
+    core.metrics.track_token_usage("gpt-4", 100, 50)
+    
+    tokens = REGISTRY.get_sample_value(
+        'openai_tokens_total',
+        {'model': 'gpt-4'}
+    )
+    assert tokens == 150
+    
+    cost = REGISTRY.get_sample_value(
+        'openai_cost_total',
+        {'model': 'gpt-4'}
+    )
+    assert cost > 0
 
 @pytest.mark.asyncio
 async def test_error_handling_integration(core):

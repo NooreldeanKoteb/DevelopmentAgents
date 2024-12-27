@@ -9,25 +9,30 @@ from core.config import get_settings, monitor_operation
 from .schemas import OpenAIRequest, OpenAIResponse
 from .cache import ResponseCache
 from .rate_limiter import RateLimiter
-from .usage import TokenUsageTracker
 from .errors import (
     OpenAIError,
     RateLimitError,
     ResponseValidationError,
     TokenLimitError
 )
+from core.monitoring.metrics import CoreMetrics
 
 class OpenAIClient:
     """Handles all OpenAI API communications with caching and rate limiting."""
 
-    def __init__(self):
+    def __init__(self, metrics: Optional['CoreMetrics'] = None):
+        self.metrics = metrics or CoreMetrics()
         self.settings = get_settings()
         self.client = AsyncOpenAI(api_key=self.settings.OPENAI_API_KEY)
         self.cache = ResponseCache()
         self.rate_limiter = RateLimiter()
-        self.usage_tracker = TokenUsageTracker()
         self.total_tokens = 0
-        self.total_cost = 0.0
+        self.total_cost = 0
+        self.model_rates = {
+            "gpt-4": 0.03,
+            "gpt-4-turbo": 0.01,
+            "gpt-3.5-turbo": 0.002
+        }
 
     def _create_request(self, prompt: str, model: Optional[str], temperature: Optional[float], max_tokens: Optional[int], force_json: bool) -> OpenAIRequest:
         """Create a standardized request object."""
@@ -143,26 +148,21 @@ class OpenAIClient:
     def _update_metrics(self, response: Dict[str, Any]) -> None:
         """Update token usage and cost metrics."""
         usage = response.usage
+        model = response.model.split(':')[0]
+        
+        # Update internal counters
         self.total_tokens += usage.total_tokens
         
-        # Calculate cost based on model type
-        model_rates = {
-            "gpt-4": 0.03,      # $0.03 per 1K tokens
-            "gpt-4-turbo": 0.01,  # $0.01 per 1K tokens
-            "gpt-3.5-turbo": 0.002  # $0.002 per 1K tokens
-        }
-        
-        model = response.model.split(':')[0]  # Handle model versions
-        rate = model_rates.get(model, 0.01)  # Default rate if model not found
-        
-        # Calculate costs for input and output tokens separately
+        # Calculate cost for internal tracking
+        rate = self.model_rates.get(model, 0.01)
         input_cost = (usage.prompt_tokens / 1000) * rate
-        output_cost = (usage.completion_tokens / 1000) * (rate * 2)  # Output typically costs 2x
+        output_cost = (usage.completion_tokens / 1000) * (rate * 2)
         total_cost = input_cost + output_cost
-        
         self.total_cost += total_cost
         
-        # Update prometheus metrics if configured
-        if hasattr(self, 'metrics'):
-            self.metrics.token_usage.labels(model=model).inc(usage.total_tokens)
-            self.metrics.cost_tracker.labels(model=model).inc(total_cost)
+        # Update Prometheus metrics
+        self.metrics.track_token_usage(
+            model=model,
+            prompt_tokens=usage.prompt_tokens,
+            completion_tokens=usage.completion_tokens
+        )
