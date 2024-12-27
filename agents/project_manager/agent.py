@@ -16,6 +16,7 @@ from .task_manager import TaskManager
 from .resource_manager import ResourceManager
 from agents.project_manager.persistence import PersistenceManager
 from redis import Redis
+from core.openai import OpenAIClient, OpenAIError
 
 class ProjectManagerAgent(BaseAgent):
     """Agent responsible for managing project resources and tasks."""
@@ -42,20 +43,22 @@ class ProjectManagerAgent(BaseAgent):
         
         self.task_service = task_service
         self.resource_service = resource_service
-        self.planner_service = planner_service
+        self.openai = OpenAIClient()  # Initialize OpenAI client here
+        
+        # Pass self to planner so it can use our OpenAI client
+        self.planner_service = planner_service or ProjectPlanner(agent=self)
         
     async def initialize(self) -> None:
         """Initialize project manager components."""
         await super().initialize()
         
         # Initialize services if not injected
-        self.planner = ProjectPlanner()
+        if not self.planner_service:
+            self.planner_service = ProjectPlanner(agent=self)
         if not self.task_service:
             self.task_service = TaskManager(persistence=PersistenceManager())
         if not self.resource_service:
             self.resource_service = ResourceManager()
-        if not self.planner_service:
-            self.planner_service = ProjectPlanner()
         
         # Subscribe to topics using process_message as the callback
         if self.message_broker:
@@ -301,7 +304,7 @@ class ProjectManagerAgent(BaseAgent):
         try:
             task = await self.task_service.create_task(message.content)  # Use task_service
             resources = await self.resource_service.get_resources()
-            timeline = await self.planner.generate_timeline([task])
+            timeline = await self.planner_service.generate_timeline([task])
             
             return BaseMessage(
                 type="task.created",

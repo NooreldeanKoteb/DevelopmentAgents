@@ -5,6 +5,7 @@ from agents.project_manager.agent import ProjectManagerAgent
 from core.schemas import TaskSchema
 from core.schemas.enums import TaskStatus, TaskPriority, BusinessImpact
 from agents.base.message import Message
+from agents.project_manager.planner import ProjectPlanner
 
 @pytest.fixture
 def sample_message():
@@ -22,16 +23,18 @@ def sample_message():
     }
 
 @pytest.fixture
-async def project_manager(redis_client, task_manager, resource_manager, planner):
+async def project_manager(redis_client, task_manager, resource_manager):
     """Create a project manager agent for testing."""
     agent = ProjectManagerAgent(
         name="Test Project Manager",
         agent_type="project_manager",
         task_service=task_manager,
         resource_service=resource_manager,
-        planner_service=planner,
+        planner_service=None,  # Set to None since we'll create it after agent initialization
         redis_client=redis_client
     )
+    # Initialize the planner after agent creation
+    agent.planner_service = ProjectPlanner(agent=agent)
     return agent
 
 @pytest.mark.asyncio

@@ -1,4 +1,4 @@
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, TYPE_CHECKING
 from datetime import datetime, timedelta
 import asyncio
 import yaml
@@ -8,11 +8,16 @@ from core.openai import OpenAIClient
 from core.schemas import TaskSchema, TaskStatus, TaskPriority
 from .errors import PlanningError
 
+# Use TYPE_CHECKING for imports only needed for type hints
+if TYPE_CHECKING:
+    from .agent import ProjectManagerAgent
+
 class ProjectPlanner:
     """Handles project planning and task organization."""
     
-    def __init__(self):
-        self.openai = OpenAIClient()
+    def __init__(self, agent: 'ProjectManagerAgent'):
+        """Initialize with reference to parent agent."""
+        self.agent = agent
         self.prompts = self._load_prompts()
         
     def _load_prompts(self) -> Dict[str, Any]:
@@ -32,8 +37,8 @@ class ProjectPlanner:
                 requirements=project_spec["requirements"]
             )
             
-            # Generate plan using OpenAI
-            response = await self.openai.get_completion(
+            # Use agent's OpenAI client instead of own instance
+            response = await self.agent.openai.get_completion(
                 user_prompt,
                 system_prompt=system_prompt
             )
@@ -71,7 +76,7 @@ class ProjectPlanner:
             )
             
             # Generate update using OpenAI
-            response = await self.openai.get_completion(
+            response = await self.agent.openai.get_completion(
                 user_prompt,
                 system_prompt=system_prompt
             )
