@@ -15,7 +15,7 @@ create_plan:
     Estimated Duration: {project[estimated_duration]} days
 
     Please provide a JSON response with:
-    1. Project phases with detailed tasks
+    1. Project phases with EXTEREMLY detailed tasks
     2. Clear task dependencies
     3. Estimated durations in hours/days
     4. Required resources and skills
@@ -31,7 +31,7 @@ create_plan:
           "tasks": [
             {{
               "name": "task_name",
-              "description": "task_description",
+              "description": "Detailed technical task_description",
               "estimated_duration": float,  # in days
               "dependencies": ["task_id1", "task_id2"],
               "required_skills": ["skill1", "skill2"],

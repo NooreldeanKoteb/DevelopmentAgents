@@ -17,33 +17,22 @@ if TYPE_CHECKING:
 class ProjectPlanner:
     """Handles project planning and task organization."""
     
-    def __init__(self, agent: 'ProjectManagerAgent'):
-        """Initialize with reference to parent agent."""
+    def __init__(self, agent=None):
+        """Initialize the project planner.
+        
+        Args:
+            agent: The agent instance this planner is associated with
+        """
         self.agent = agent
         self.prompts = self._load_prompts()
         
     def _load_prompts(self) -> Dict[str, Any]:
         """Load prompts from YAML file."""
+        prompt_path = Path("prompts/project_manager/planning.yaml")
         try:
-            prompt_path = Path("prompts/project_manager/planning.yaml")
-            with open(prompt_path, 'r') as f:
-                prompts = yaml.safe_load(f)
-                
-            # Validate the loaded prompts
-            if not isinstance(prompts, dict):
-                raise ValueError("Prompts file must contain a dictionary")
-                
-            required_sections = ["create_plan", "update_plan"]
-            for section in required_sections:
-                if section not in prompts:
-                    raise ValueError(f"Missing required section: {section}")
-                if "system" not in prompts[section] or "prompt" not in prompts[section]:
-                    raise ValueError(f"Missing system or prompt in section: {section}")
-                    
-            return prompts
-            
+            with open(prompt_path) as f:
+                return yaml.safe_load(f)
         except Exception as e:
-            self.agent.logger.error(f"Error loading prompts: {str(e)}")
             raise PlanningError(f"Failed to load prompts: {str(e)}")
         
     async def create_plan(self, project_spec: Dict[str, Any]) -> Dict[str, Any]:
@@ -191,55 +180,17 @@ class ProjectPlanner:
         return sum(float(task.estimated_duration) for task in tasks)
 
     async def _format_planning_prompt(self, project_spec: Dict[str, Any]) -> str:
-        """Format the planning prompt for OpenAI."""
-        return f"""
-        Create a detailed project plan for the following project specification:
-        
-        Project Name: {project_spec.get('name', 'Unnamed Project')}
-        Description: {project_spec.get('description', 'No description provided')}
-        Requirements: {project_spec.get('requirements', [])}
-        Constraints: {project_spec.get('constraints', {})}
-        
-        Please provide a JSON response with the following structure:
-        {{
-            "phases": [
-                {{
-                    "name": "phase_name",
-                    "description": "phase_description",
-                    "tasks": [
-                        {{
-                            "name": "task_name",
-                            "description": "task_description",
-                            "estimated_duration": float,
-                            "dependencies": ["task_id1", "task_id2"],
-                            "required_skills": ["skill1", "skill2"],
-                            "resources": ["resource1", "resource2"],
-                            "business_impact": "HIGH|MEDIUM|LOW",
-                            "priority": "HIGH|MEDIUM|LOW",
-                            "status": "PENDING"
-                        }}
-                    ]
-                }}
-            ],
-            "dependencies": [
-                {{
-                    "from": "task_id1",
-                    "to": "task_id2",
-                    "type": "finish_to_start"
-                }}
-            ],
-            "estimated_duration": float,
-            "critical_path": ["task_id1", "task_id2"],
-            "risk_assessment": {{
-                "level": "low|medium|high",
-                "factors": ["risk1", "risk2"],
-                "mitigations": ["mitigation1", "mitigation2"]
-            }}
-        }}
-        
-        Ensure all task IDs are unique and dependencies are valid.
-        Each task must include a business_impact field with values HIGH, MEDIUM, or LOW.
-        """
+        """Format the planning prompt using the YAML template."""
+        try:
+            create_plan = self.prompts['create_plan']
+            return (
+                f"{create_plan['system']}\n\n"
+                f"{create_plan['prompt'].format(project=project_spec)}"
+            )
+        except KeyError as e:
+            raise PlanningError(f"Missing required project field: {str(e)}")
+        except Exception as e:
+            raise PlanningError(f"Error formatting prompt: {str(e)}")
 
     async def _store_plan(self, project_name: str, plan: Dict[str, Any]) -> None:
         """Store the project plan in memory."""
