@@ -2,9 +2,9 @@ import pytest
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock
 from core.schemas import TaskSchema, TaskStatus, TaskPriority, BusinessImpact
-from agents.project_manager.task_manager import TaskManager
-from agents.project_manager.persistence import PersistenceManager
-from agents.project_manager.errors import TaskManagementError
+from agents.director.task_manager import TaskManager
+from agents.director.persistence import PersistenceManager
+from agents.director.errors import TaskManagementError
 
 @pytest.fixture
 def persistence_manager():

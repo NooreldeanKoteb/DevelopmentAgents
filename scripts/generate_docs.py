@@ -83,7 +83,7 @@ Advanced Message Bus Features
 # Message with different priorities
 urgent_message = Message(
     sender="security_agent",
-    recipient="project_manager",
+    recipient="Director",
     message_type="security_alert",
     priority=MessagePriority.CRITICAL,
     payload={"alert": "vulnerability_detected", "severity": "high"}

@@ -59,7 +59,7 @@ Create a schema validation system that:
 ===== COMPLETE =====
 ## Phase 3: Agent Development
 
-### Project Manager Agent
+### Director Agent
 Create an agent that:
 - Coordinates other agents
 - Manages project lifecycle

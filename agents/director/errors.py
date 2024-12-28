@@ -1,11 +1,11 @@
 from agents.base.errors import AgentError
 from typing import List, Dict, Any, Optional
 
-class ProjectManagerError(AgentError):
-    """Base exception for project manager related errors."""
+class DirectorError(AgentError):
+    """Base exception for Director related errors."""
     pass
 
-class ProjectError(ProjectManagerError):
+class ProjectError(DirectorError):
     """Base exception for project-related errors."""
     pass
 

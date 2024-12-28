@@ -6,11 +6,11 @@ from typing import AsyncGenerator
 from prometheus_client import REGISTRY, CollectorRegistry
 from unittest.mock import MagicMock, AsyncMock
 from core.integration import CoreIntegration
-from agents.project_manager.task_manager import TaskManager
-from agents.project_manager.planner import ProjectPlanner
-from agents.project_manager.persistence import PersistenceManager
-from agents.project_manager.resource_manager import ResourceManager
-from agents.project_manager.agent import ProjectManagerAgent
+from agents.director.task_manager import TaskManager
+from agents.director.planner import ProjectPlanner
+from agents.director.persistence import PersistenceManager
+from agents.director.resource_manager import ResourceManager
+from agents.director.agent import DirectorAgent
 from core.config.settings import Settings
 from core.storage.message_store import MessageStore
 from core.monitoring import CoreMetrics
@@ -103,9 +103,9 @@ async def resource_manager(persistence_manager):
     yield manager
 
 @pytest.fixture(scope="function")
-async def project_manager(task_manager, resource_manager, planner):
-    """Create a project manager for testing."""
-    manager = ProjectManagerAgent(
+async def Director(task_manager, resource_manager, planner):
+    """Create a Director for testing."""
+    manager = DirectorAgent(
         task_manager=task_manager,
         resource_manager=resource_manager,
         planner=planner

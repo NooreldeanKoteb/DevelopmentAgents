@@ -1,22 +1,22 @@
 import pytest
 from datetime import datetime
-from agents.project_manager.planner import ProjectPlanner
+from agents.director.planner import ProjectPlanner
 from core.schemas import TaskSchema, TaskStatus, TaskPriority, BusinessImpact
 from unittest.mock import MagicMock, AsyncMock
 
 class TestProjectPlanner:
     @pytest.fixture
-    def mock_project_manager(self):
-        """Create a mock project manager for testing."""
+    def mock_director(self):
+        """Create a mock director for testing."""
         mock_agent = MagicMock()
         mock_agent.openai = MagicMock()
         mock_agent.openai.get_completion = AsyncMock()
         return mock_agent
 
     @pytest.fixture
-    def planner(self, mock_project_manager):
+    def planner(self, mock_director):
         """Create a project planner instance for testing."""
-        return ProjectPlanner(agent=mock_project_manager)
+        return ProjectPlanner(agent=mock_director)
 
     @pytest.fixture
     def sample_tasks(self):

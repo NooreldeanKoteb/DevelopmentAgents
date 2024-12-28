@@ -14,11 +14,11 @@ from core.schemas import (
 from .planner import ProjectPlanner
 from .task_manager import TaskManager
 from .resource_manager import ResourceManager
-from agents.project_manager.persistence import PersistenceManager
+from agents.director.persistence import PersistenceManager
 from redis import Redis
 from core.openai import OpenAIClient, OpenAIError
 
-class ProjectManagerAgent(BaseAgent):
+class DirectorAgent(BaseAgent):
     """Agent responsible for managing project resources and tasks."""
     
     def __init__(
@@ -31,12 +31,12 @@ class ProjectManagerAgent(BaseAgent):
         redis_client: Optional[Redis] = None,
         redis_url: Optional[str] = None
     ):
-        """Initialize the project manager agent."""
+        """Initialize the Director agent."""
         self.agent_id = str(uuid.uuid4())  # Set agent_id before super().__init__
         super().__init__(
             agent_id=self.agent_id,
             name=name,
-            agent_type=AgentType.PROJECT_MANAGER,
+            agent_type=AgentType.DIRECTOR,
             redis_client=redis_client,
             redis_url=redis_url
         )
@@ -49,7 +49,7 @@ class ProjectManagerAgent(BaseAgent):
         self.planner_service = planner_service or ProjectPlanner(agent=self)
         
     async def initialize(self) -> None:
-        """Initialize project manager components."""
+        """Initialize Director components."""
         await super().initialize()
         
         # Initialize services if not injected
@@ -297,7 +297,7 @@ class ProjectManagerAgent(BaseAgent):
         
     async def handle_error(self, error: Exception) -> None:
         """Handle agent errors."""
-        self.logger.logger.error(f"Error in ProjectManager: {str(error)}")
+        self.logger.logger.error(f"Error in Director: {str(error)}")
         self.metrics.error_count.labels(
             agent_id=self.agent_id,
             agent_type=self.agent_type.value

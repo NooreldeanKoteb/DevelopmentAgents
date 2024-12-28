@@ -1,6 +1,6 @@
 import re
 from typing import Dict, Optional
-from agents.project_manager.enums import ActionType
+from agents.director.enums import ActionType
 from agents.base.message import Message
 
 class ActionAnalyzer:

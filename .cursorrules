@@ -31,45 +31,39 @@ project_structure:
       - message.py            # Message handling system
       - errors.py            # Custom exceptions
       - context.py           # Context management
-    - project_manager/
+    - director/
       - __init__.py
       - agent.py             # Project management implementation
       - planner.py           # Project planning logic
       - task_manager.py      # Task management
       - resource_manager.py  # Resource allocation
-    - knowledge/
+    - specialist/
       - __init__.py
       - agent.py             # Knowledge management
       - openai_client.py     # OpenAI API integration
       - vector_store.py      # Vector database handling
       - embeddings.py        # Text embedding logic
       - search.py           # Search functionality
-    - coding/
+    - developer/
       - __init__.py
       - agent.py             # Code generation agent
       - generator.py         # Code generation logic
       - reviewer.py         # Code review system
       - analyzer.py         # Code analysis
       - refactor.py         # Code refactoring
-    - testing/
+    - guardian/
       - __init__.py
       - agent.py             # Test management
       - generator.py         # Test generation
       - runner.py           # Test execution
       - reporter.py         # Test reporting
-    - environment/
+    - operator/
       - __init__.py
       - agent.py             # Environment setup
       - setup.py            # Environment configuration
       - dependency.py       # Dependency management
       - container.py        # Container management
-    - security/
-      - __init__.py
-      - agent.py             # Security management
-      - scanner.py          # Security scanning
-      - validator.py        # Security validation
-      - auditor.py         # Security auditing
-    - documentation/
+    - curator/
       - __init__.py
       - agent.py             # Documentation management
       - generator.py         # Doc generation
@@ -154,14 +148,14 @@ agent_rules:
     error_handling: required
     logging: required
     
-  project_manager:
+  director:
     responsibilities:
       - project_planning
       - task_distribution
       - resource_allocation
       - progress_monitoring
     
-  knowledge_agent:
+  specialist:
     responsibilities:
       - information_gathering
       - knowledge_storage
@@ -171,7 +165,7 @@ agent_rules:
       - openai_api
       - vector_store
       
-  coding_agent:
+  developer:
     responsibilities:
       - code_generation
       - code_review
@@ -182,28 +176,21 @@ agent_rules:
       - formatters
       - linters
       
-  environment_agent:
+  operator:
     responsibilities:
       - environment_setup
       - dependency_management
       - tool_configuration
       - container_management
       
-  testing_agent:
+  guardian:
     responsibilities:
       - test_generation
       - test_execution
       - coverage_analysis
       - performance_testing
       
-  security_agent:
-    responsibilities:
-      - security_analysis
-      - vulnerability_scanning
-      - dependency_auditing
-      - compliance_checking
-      
-  documentation_agent:
+  curator:
     responsibilities:
       - code_documentation
       - api_documentation

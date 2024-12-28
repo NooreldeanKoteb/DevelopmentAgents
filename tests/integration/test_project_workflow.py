@@ -8,8 +8,7 @@ from core.schemas.enums import (
 )
 from core.schemas import TaskSchema, ResourceSchema
 from datetime import datetime
-from agents.project_manager.models import ResourceData
-from prometheus_client import REGISTRY
+from prometheus_client import REGISTRY  
 import json
 import asyncio
 

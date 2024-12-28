@@ -1,0 +1,52 @@
+List of Agents
+- Strategist
+    - Conversates with the user to understand the product vision
+    - Creates the product requirements
+    - Creates the product backlog
+    - Creates the product roadmap
+    - Creates the product release plan
+    - works with the Director to create the project plan
+- Director
+    - Creates the project plan
+    - Creates the task list
+    - Assigns tasks to agents
+    - Tracks the progress of the project
+    - Manages the project plan
+    - Manages issues that arise
+- Operator
+    - sets up the system environment
+    - Runs system commands
+- Developer
+    - Creates the code
+    - Collaborates with other agents to create the code
+- Custodian
+    - Reviews the code
+    - Provides feedback to the code agent and Director
+- Guardian
+    - Creates the test cases
+    - Runs the test cases
+    - Provides feedback to the code agent
+- Distributor
+    - Deploys the code
+- Curator
+    - Creates the documentation
+- Specialist
+    - Creates the knowledge base
+    - Researches tasks and provides knowledge to the Director and other agents
+    - Deals with external knowledge sources
+    - Uses RAG to answer questions
+- Designer
+    - Creates the UI/UX
+- Resolver
+    - Debugs issues with the code, test cases, and deployment
+    - Provides feedback to the code agent, test agent, and Director
+
+Future Agents:
+- Security Agent
+- Performance Agent
+- Scalability Agent
+- Cost Optimization Agent
+- Sustainability Agent
+- Ethics Agent
+- Accessibility Agent
+- Localization Agent

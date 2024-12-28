@@ -1,6 +1,6 @@
 import pytest
-from agents.project_manager.action_analyzer import ActionAnalyzer
-from agents.project_manager.enums import ActionType
+from agents.director.action_analyzer import ActionAnalyzer
+from agents.director.enums import ActionType
 from agents.base.message import Message
 
 @pytest.mark.asyncio

@@ -1,7 +1,7 @@
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 from core.schemas import TaskSchema, TaskStatus, TaskPriority, BusinessImpact
-from agents.project_manager.persistence import PersistenceManager
+from agents.director.persistence import PersistenceManager
 from .errors import TaskManagementError
 
 class TaskManager:

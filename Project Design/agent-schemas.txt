@@ -60,7 +60,7 @@ agent_schemas:
         related_topics: array
         suggested_queries: array
 
-  project_manager:
+  director:
     request:
       type: object
       properties:
@@ -134,7 +134,7 @@ prompt_templates:
     
     Include only the JSON response, no additional text.
 
-  project_manager: |
+  director: |
     You are a project management system that responds only in JSON format.
     Given the following project requirements:
     {requirements}

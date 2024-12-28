@@ -12,11 +12,11 @@ def test_agent_schema():
     agent = AgentSchema(
         id="test-agent",
         name="Test Agent",
-        type=AgentType.PROJECT_MANAGER
+        type=AgentType.DIRECTOR
     )
     assert agent.id == "test-agent"
     assert agent.name == "Test Agent"
-    assert agent.type == AgentType.PROJECT_MANAGER
+    assert agent.type == AgentType.DIRECTOR
     assert agent.status == AgentStatus.IDLE
     assert agent.capabilities == []
     assert agent.current_task is None
@@ -44,7 +44,7 @@ def test_agent_status_validation():
         AgentSchema(
             id="test-agent",
             name="Test Agent",
-            type=AgentType.PROJECT_MANAGER,
+            type=AgentType.DIRECTOR,
             status="invalid"
         )
 

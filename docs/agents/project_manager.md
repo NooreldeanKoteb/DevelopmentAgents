@@ -1,14 +1,14 @@
 
 
-# Project Manager Agent Documentation
+# Director Agent Documentation
 
 ## Overview
-The Project Manager Agent coordinates and oversees all other agents in the system, managing project lifecycle, task allocation, and resource management. It serves as the central orchestrator for project-level decisions and maintains overall project context.
+The Director Agent coordinates and oversees all other agents in the system, managing project lifecycle, task allocation, and resource management. It serves as the central orchestrator for project-level decisions and maintains overall project context.
 
 ## Key Components
 
-### 1. Project Manager Agent
-**Location**: `agents/project_manager/agent.py`
+### 1. Director Agent
+**Location**: `agents/director/agent.py`
 
 Main project management agent implementation.
 
@@ -21,9 +21,9 @@ Main project management agent implementation.
 - Agent coordination
 
 ```python
-from agents.project_manager import ProjectManagerAgent
+from agents.director import DirectorAgent
 
-agent = ProjectManagerAgent()
+agent = DirectorAgent()
 await agent.initialize_project({
     "name": "New Feature",
     "description": "Implement new API endpoint",
@@ -32,7 +32,7 @@ await agent.initialize_project({
 ```
 
 ### 2. Project Planner
-**Location**: `agents/project_manager/planner.py`
+**Location**: `agents/director/planner.py`
 
 Handles project planning and task breakdown.
 
@@ -51,7 +51,7 @@ class ProjectPlanner:
 ```
 
 ### 3. Task Manager
-**Location**: `agents/project_manager/task_manager.py`
+**Location**: `agents/director/task_manager.py`
 
 Manages task lifecycle and dependencies.
 
@@ -70,14 +70,7 @@ class TaskManager:
 
 ## Response Format
 
-```python
-class ProjectResponse(BaseModel):
-    action_type: str
-    tasks: List[Task]
-    timeline: Timeline
-    resources: List[Resource]
-    priorities: List[Priority]
-```
+TODO: FILL IN
 
 ## Project Management Flow
 
@@ -184,15 +177,15 @@ async def manage_priorities(self):
 ## Error Handling
 
 ```python
-class ProjectManagerError(AgentError):
-    """Base project manager error"""
+class DirectorError(AgentError):
+    """Base Director error"""
     pass
 
-class TaskAssignmentError(ProjectManagerError):
+class TaskAssignmentError(DirectorError):
     """Task assignment failed"""
     pass
 
-class ResourceAllocationError(ProjectManagerError):
+class ResourceAllocationError(DirectorError):
     """Resource allocation failed"""
     pass
 ```
@@ -214,7 +207,7 @@ PROJECT_METRICS = {
 ### 1. Project Creation
 ```python
 async def create_project(project_spec: ProjectSpec):
-    agent = ProjectManagerAgent()
+    agent = Director()
     
     # Initialize project
     project = await agent.initialize_project(project_spec)
@@ -270,7 +263,7 @@ async def handle_progress_update(self, update: ProgressUpdate):
 
 ## Testing
 
-The project manager includes tests for:
+The Director includes tests for:
 - Project initialization
 - Task distribution
 - Resource allocation
@@ -278,12 +271,12 @@ The project manager includes tests for:
 - Error handling
 - Performance metrics
 
-For detailed implementation examples and test cases, refer to `tests/agents/project_manager/`.
+For detailed implementation examples and test cases, refer to `tests/agents/director/`.
 
 ## Agent Rules
 From the configuration:
 ```python
-project_manager_rules = {
+director_rules = {
     "responsibilities": [
         "project_planning",
         "task_distribution",
@@ -307,4 +300,4 @@ Remember to:
 - Document decisions
 - Optimize resource usage
 
-This documentation provides a comprehensive overview of the Project Manager Agent's capabilities and responsibilities. For specific implementation details, refer to the individual component documentation.
+This documentation provides a comprehensive overview of the Director Agent's capabilities and responsibilities. For specific implementation details, refer to the individual component documentation.

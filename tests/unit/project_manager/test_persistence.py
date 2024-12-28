@@ -1,7 +1,7 @@
 import pytest
 import redis.asyncio as redis
 from datetime import datetime
-from agents.project_manager.persistence import PersistenceManager
+from agents.director.persistence import PersistenceManager
 
 # Import enums
 from core.schemas.enums import (

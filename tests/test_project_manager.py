@@ -1,11 +1,11 @@
 from unittest.mock import AsyncMock, MagicMock
 import pytest
 from datetime import datetime
-from agents.project_manager.agent import ProjectManagerAgent
+from agents.director.agent import DirectorAgent
 from core.schemas import TaskSchema
 from core.schemas.enums import TaskStatus, TaskPriority, BusinessImpact
 from agents.base.message import Message
-from agents.project_manager.planner import ProjectPlanner
+from agents.director.planner import ProjectPlanner
 
 @pytest.fixture
 def sample_message():
@@ -23,11 +23,11 @@ def sample_message():
     }
 
 @pytest.fixture
-async def project_manager(redis_client, task_manager, resource_manager):
-    """Create a project manager agent for testing."""
-    agent = ProjectManagerAgent(
-        name="Test Project Manager",
-        agent_type="project_manager",
+async def Director(redis_client, task_manager, resource_manager):
+    """Create a Director agent for testing."""
+    agent = DirectorAgent(
+        name="Test Director",
+        agent_type="director",
         task_service=task_manager,
         resource_service=resource_manager,
         planner_service=None,  # Set to None since we'll create it after agent initialization
@@ -39,7 +39,7 @@ async def project_manager(redis_client, task_manager, resource_manager):
 
 @pytest.mark.asyncio
 async def test_process_message(sample_message, redis_client):
-    """Test project manager message processing."""
+    """Test Director message processing."""
     # Create async mocks
     mock_task_manager = AsyncMock()
     mock_planner = AsyncMock()
@@ -69,9 +69,9 @@ async def test_process_message(sample_message, redis_client):
     mock_planner.generate_timeline.return_value = {}
     mock_resource_manager.get_resources.return_value = []
     
-    agent = ProjectManagerAgent(
-        name="Test Project Manager",
-        agent_type="project_manager",
+    agent = DirectorAgent(
+        name="Test Director",
+        agent_type="Director",
         task_service=mock_task_manager,
         resource_service=mock_resource_manager,
         planner_service=mock_planner,

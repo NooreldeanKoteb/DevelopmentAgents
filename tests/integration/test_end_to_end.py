@@ -5,7 +5,7 @@ from core.schemas.enums import (
     BusinessImpact
 )
 from core.schemas import TaskSchema
-from agents.project_manager.resource_manager import ResourceManager
+from agents.director.resource_manager import ResourceManager
 
 class TestEndToEnd:
     @pytest.mark.asyncio

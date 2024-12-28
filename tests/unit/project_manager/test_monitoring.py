@@ -1,6 +1,6 @@
 import pytest
 from prometheus_client import REGISTRY
-from agents.project_manager.monitoring import (
+from agents.director.monitoring import (
     ProjectMetrics,
     TaskMetrics,
     ResourceMetrics,

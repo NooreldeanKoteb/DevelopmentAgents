@@ -1,7 +1,7 @@
 import pytest
 from core.schemas import TaskSchema
 from core.schemas.enums import TaskStatus, TaskPriority, BusinessImpact
-from agents.project_manager.priority import calculate_priority_score, calculate_task_priority
+from agents.director.priority import calculate_priority_score, calculate_task_priority
 
 def test_calculate_task_priority_high():
     """Test high priority calculation."""

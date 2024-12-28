@@ -2,11 +2,11 @@ import os
 import sys
 import pytest
 from core.config.settings import Settings
-from agents.project_manager.agent import ProjectManagerAgent
-from agents.project_manager.task_manager import TaskManager
-from agents.project_manager.resource_manager import ResourceManager
-from agents.project_manager.planner import ProjectPlanner
-from agents.project_manager.persistence import PersistenceManager
+from agents.director.agent import DirectorAgent
+from agents.director.task_manager import TaskManager
+from agents.director.resource_manager import ResourceManager
+from agents.director.planner import ProjectPlanner
+from agents.director.persistence import PersistenceManager
 from core.schemas import (
     TaskSchema, TaskStatus, TaskPriority,
     BusinessImpact, ResourceSchema

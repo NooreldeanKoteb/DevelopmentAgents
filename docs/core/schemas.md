@@ -91,10 +91,10 @@ class ResourceType(str, Enum):
     NETWORK = "network"
 
 class AgentType(str, Enum):
-    PROJECT_MANAGER = "project_manager"
-    KNOWLEDGE = "knowledge"
-    CODING = "coding"
-    TESTING = "testing"
+    Director = "director"
+    Specialist = "specialist"
+    Developer = "developer"
+    Guardian = "guardian"
 ```
 
 ## Validation Rules

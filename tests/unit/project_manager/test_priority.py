@@ -1,6 +1,6 @@
 import pytest
 from datetime import datetime, timedelta
-from agents.project_manager.priority import PriorityCalculator
+from agents.director.priority import PriorityCalculator
 from core.schemas import TaskPriority
 
 class TestPriorityCalculator:

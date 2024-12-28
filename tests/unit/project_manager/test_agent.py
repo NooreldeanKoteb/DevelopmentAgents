@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from agents.project_manager.agent import ProjectManagerAgent
+from agents.director.agent import DirectorAgent
 from agents.base.message import Message as BaseMessage
 from core.messaging.message import Message as CoreMessage
 from core.schemas.enums import AgentType, TaskStatus, ResourceStatus, TaskPriority
@@ -141,10 +141,10 @@ def mock_metrics():
 @pytest.fixture
 async def agent(mock_redis_client, mock_task_service, mock_resource_service, mock_planner_service, mock_metrics, mock_memory):
     """Create a test agent with mocked dependencies."""
-    with patch('agents.project_manager.agent.ProjectPlanner', return_value=mock_planner_service):
-        agent = ProjectManagerAgent(
+    with patch('agents.Director.agent.ProjectPlanner', return_value=mock_planner_service):
+        agent = DirectorAgent(
             name="test_agent",
-            agent_type="project_manager",
+            agent_type="director",
             task_service=mock_task_service,
             resource_service=mock_resource_service,
             planner_service=mock_planner_service,

@@ -25,7 +25,7 @@ def test_base_agent_instantiation():
         BaseAgent(
             agent_id="test-agent-1",
             name="Test Agent",
-            agent_type=AgentType.PROJECT_MANAGER
+            agent_type=AgentType.DIRECTOR
         )
 
 def test_incomplete_agent_instantiation():
@@ -37,7 +37,7 @@ def test_incomplete_agent_instantiation():
         IncompleteAgent(
             agent_id="test-agent-1",
             name="Test Agent",
-            agent_type=AgentType.PROJECT_MANAGER
+            agent_type=AgentType.DIRECTOR
         )
 
 @pytest.mark.asyncio
@@ -50,7 +50,7 @@ async def test_concrete_agent_implementation(redis_client, mock_metrics):
     agent = ConcreteAgent(
         agent_id="test-agent-1",
         name="Test Agent",
-        agent_type=AgentType.PROJECT_MANAGER,
+        agent_type=AgentType.DIRECTOR,
         redis_client=redis_client
     )
     assert isinstance(agent, BaseAgent)

@@ -12,7 +12,7 @@ from .errors import PlanningError
 
 # Use TYPE_CHECKING for imports only needed for type hints
 if TYPE_CHECKING:
-    from .agent import ProjectManagerAgent
+    from .agent import DirectorAgent
 
 class ProjectPlanner:
     """Handles project planning and task organization."""
@@ -28,7 +28,7 @@ class ProjectPlanner:
         
     def _load_prompts(self) -> Dict[str, Any]:
         """Load prompts from YAML file."""
-        prompt_path = Path("prompts/project_manager/planning.yaml")
+        prompt_path = Path("prompts/Director/planning.yaml")
         try:
             with open(prompt_path) as f:
                 return yaml.safe_load(f)

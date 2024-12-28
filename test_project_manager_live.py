@@ -2,11 +2,11 @@ import asyncio
 import redis.asyncio as redis
 from datetime import datetime
 from prometheus_client import REGISTRY, CollectorRegistry
-from agents.project_manager.agent import ProjectManagerAgent
-from agents.project_manager.task_manager import TaskManager
-from agents.project_manager.resource_manager import ResourceManager
-from agents.project_manager.planner import ProjectPlanner
-from agents.project_manager.persistence import PersistenceManager
+from agents.director.agent import DirectorAgent
+from agents.director.task_manager import TaskManager
+from agents.director.resource_manager import ResourceManager
+from agents.director.planner import ProjectPlanner
+from agents.director.persistence import PersistenceManager
 from core.messaging.message import Message
 from core.schemas.enums import TaskPriority, BusinessImpact
 from core.monitoring.metrics import CoreMetrics
@@ -154,10 +154,10 @@ async def main():
         
         print("Services initialized")
         
-        print("\nCreating Project Manager agent...")
-        agent = ProjectManagerAgent(
-            name="Project Manager",
-            agent_type="project_manager",
+        print("\nCreating Director agent...")
+        agent = DirectorAgent(
+            name="Director",
+            agent_type="director",
             task_service=task_manager,
             resource_service=resource_manager,
             planner_service=None,  # Set to None initially

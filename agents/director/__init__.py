@@ -2,11 +2,11 @@ from core.schemas import (
     TaskSchema, TaskStatus, TaskPriority, 
     BusinessImpact, ResourceSchema
 )
-from .agent import ProjectManagerAgent
+from .agent import DirectorAgent
 
 __all__ = [
     'TaskSchema',
-    'ProjectManagerAgent',
+    'DirectorAgent',
     'TaskStatus',
     'TaskPriority',
     'BusinessImpact'

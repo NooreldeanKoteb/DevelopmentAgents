@@ -1,6 +1,6 @@
 import pytest
-from agents.project_manager.errors import (
-    ProjectManagerError,
+from agents.director.errors import (
+    DirectorError,
     ProjectError,
     TaskError,
     ResourceError,
@@ -20,16 +20,16 @@ from agents.project_manager.errors import (
     ResourceNotFoundError
 )
 
-def test_project_manager_error():
-    """Test base project manager error."""
-    error = ProjectManagerError("Test error")
-    assert isinstance(error, ProjectManagerError)
+def test_director_error():
+    """Test base Director error."""
+    error = DirectorError("Test error")
+    assert isinstance(error, DirectorError)
     assert str(error) == "Test error"
 
 def test_project_error():
     """Test project error."""
     error = ProjectError("Test error")
-    assert isinstance(error, ProjectManagerError)
+    assert isinstance(error, DirectorError)
     assert str(error) == "Test error"
 
 def test_resource_error():
