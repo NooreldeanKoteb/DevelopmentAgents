@@ -27,7 +27,7 @@ class Settings(BaseSettings):
         raise ValueError("OPENAI_API_KEY environment variable is not set")
     OPENAI_MODEL: str = "gpt-4-turbo-preview"
     TEMPERATURE: float = 0.7
-    MAX_TOKENS: int = 2000
+    MAX_TOKENS: int = 20000
     RATE_LIMIT: int = 50  # Requests per minute
     
     # Storage

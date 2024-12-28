@@ -37,6 +37,7 @@ class TaskPriority(str, Enum):
     MEDIUM = "medium"
     HIGH = "high"
     CRITICAL = "critical"
+    UKNOWN = "unknown"
 
 class BusinessImpact(str, Enum):
     """Business impact enumeration."""
