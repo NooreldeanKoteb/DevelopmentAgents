@@ -3,13 +3,12 @@ from datetime import datetime
 import asyncio
 from core.monitoring import CoreLogger, CoreMetrics
 from core.messaging import Message, MessageBroker
-from core.schemas import AgentSchema, AgentStatus, AgentType
 from .memory import Memory
 from .context import Context
 from .errors import AgentError
 from abc import ABC, abstractmethod
 from redis import Redis
-
+from agents.base.enums import AgentStatus, AgentType
 class BaseAgent(ABC):
     """Base class for all agents in the system."""
     

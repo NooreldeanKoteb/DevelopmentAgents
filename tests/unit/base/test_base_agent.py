@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import MagicMock
 from agents.base.base_agent import BaseAgent
 from core.schemas.messages import MessageSchema, MessageType, MessageStatus
-from core.schemas.enums import AgentType
+from agents.base.enums import AgentType
 from typing import Dict, Any
 from datetime import datetime
 import uuid

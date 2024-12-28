@@ -7,16 +7,14 @@ import json
 from agents.base import BaseAgent, AgentError
 from agents.base.message import Message as BaseMessage  # Import base Message
 from core.messaging.message import Message as CoreMessage  # Import core Message for pub/sub
-from core.schemas import (
-    AgentType, TaskSchema, TaskStatus, TaskPriority,
-    AgentSchema, ResourceSchema
-)
+from core.schemas import TaskSchema, TaskStatus, TaskPriority
 from .planner import ProjectPlanner
 from .task_manager import TaskManager
 from .resource_manager import ResourceManager
 from agents.director.persistence import PersistenceManager
 from redis import Redis
-from core.openai import OpenAIClient, OpenAIError
+from core.openai import OpenAIClient
+from agents.base.enums import AgentType
 
 class DirectorAgent(BaseAgent):
     """Agent responsible for managing project resources and tasks."""
@@ -24,7 +22,7 @@ class DirectorAgent(BaseAgent):
     def __init__(
         self,
         name: str,
-        agent_type: str,
+        agent_type: AgentType,
         task_service: TaskManager,
         resource_service: ResourceManager,
         planner_service: ProjectPlanner,

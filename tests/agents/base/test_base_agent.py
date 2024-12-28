@@ -4,13 +4,13 @@ from datetime import datetime
 from typing import Dict, Any
 from agents.base.base_agent import BaseAgent
 from core.schemas.messages import MessageSchema, MessageType, MessageStatus
-from core.schemas.enums import AgentType
+from agents.base.enums import AgentType
 
 @pytest.fixture
 async def test_agent(redis_client):
     """Fixture to provide a test agent instance."""
     class TestAgent(BaseAgent):
-        agent_type = AgentType.PROJECT_MANAGER
+        agent_type = AgentType.DIRECTOR
 
         async def process_message(self, message: MessageSchema) -> Dict[str, Any]:
             if not message.recipient:
@@ -45,7 +45,7 @@ async def test_agent(redis_client):
     return TestAgent(
         agent_id="test-agent-1",
         name="Test Agent",
-        agent_type=AgentType.PROJECT_MANAGER,
+        agent_type=AgentType.DIRECTOR,
         redis_client=redis_client
     )
 
@@ -76,7 +76,7 @@ def test_task():
 async def test_agent_initialization(test_agent):
     """Test agent initialization."""
     assert isinstance(test_agent, BaseAgent)
-    assert test_agent.agent_type == AgentType.PROJECT_MANAGER
+    assert test_agent.agent_type == AgentType.DIRECTOR
 
 @pytest.mark.asyncio
 async def test_process_message(test_agent, test_message):
@@ -132,7 +132,7 @@ async def test_agent_metadata(test_agent):
     """Test agent metadata handling."""
     metadata = test_agent.get_metadata()
     assert "agent_type" in metadata
-    assert metadata["agent_type"] == AgentType.PROJECT_MANAGER
+    assert metadata["agent_type"] == AgentType.DIRECTOR
 
 @pytest.mark.asyncio
 async def test_agent_status(test_agent):

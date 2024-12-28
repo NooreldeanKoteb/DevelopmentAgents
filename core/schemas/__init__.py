@@ -5,12 +5,6 @@ from .base import (
     ErrorSchema
 )
 
-from .agents import (
-    AgentSchema,
-    AgentStatus,
-    AgentType
-)
-
 from .task import (
     TaskSchema,
     TaskStatus,
@@ -31,7 +25,6 @@ from .projects import (
 )
 
 from .messages import MessageSchema, MessageType, MessageStatus
-from .enums import AgentType
 
 __all__ = [
     # Base schemas
@@ -39,11 +32,6 @@ __all__ = [
     'TimestampedSchema',
     'MetadataSchema',
     'ErrorSchema',
-    
-    # Agent schemas and enums
-    'AgentSchema',
-    'AgentStatus',
-    'AgentType',
     
     # Task schemas and enums
     'TaskSchema',
@@ -65,7 +53,4 @@ __all__ = [
     'MessageSchema',
     'MessageType',
     'MessageStatus',
-    
-    # Agent type enums
-    'AgentType'
 ] 

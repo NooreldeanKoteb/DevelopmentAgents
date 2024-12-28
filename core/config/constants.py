@@ -13,13 +13,3 @@ class LogLevel(str, Enum):
     WARNING = "WARNING"
     ERROR = "ERROR"
     CRITICAL = "CRITICAL"
-
-class AgentType(str, Enum):
-    """Types of agents in the system."""
-    PROJECT_MANAGER = "project_manager"
-    KNOWLEDGE = "knowledge"
-    CODING = "coding"
-    TESTING = "testing"
-    ENVIRONMENT = "environment"
-    SECURITY = "security"
-    DOCUMENTATION = "documentation" 

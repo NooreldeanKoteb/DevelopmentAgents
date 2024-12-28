@@ -1,6 +1,9 @@
 from enum import Enum, auto
+from pydantic import Field
+from core.schemas.base import TimestampedSchema, MetadataSchema
+from typing import List, Dict, Optional
 
-class AgentName(str, Enum):
+class AgentType(str, Enum):
     STRATEGIST = "strategist" # previous Product Owner
     DIRECTOR = "director" # previous Project Manager
     OPERATOR = "operator" # previous System Agent
@@ -112,3 +115,23 @@ class TaskType(Enum):
 
     # Placeholder
     UNKNOWN = "unknown"
+
+
+
+
+class AgentStatus(str, Enum):
+    IDLE = "idle"
+    BUSY = "busy"
+    ERROR = "error"
+    OFFLINE = "offline"
+
+
+class AgentSchema(TimestampedSchema, MetadataSchema):
+    """Base schema for agent data."""
+    id: str
+    name: str
+    type: AgentType
+    status: AgentStatus = AgentStatus.OFFLINE
+    capabilities: List[str] = []
+    current_task: Optional[str] = None
+    performance_metrics: Dict[str, float] = Field(default_factory=dict) 

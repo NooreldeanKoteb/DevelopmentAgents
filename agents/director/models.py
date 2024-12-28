@@ -3,7 +3,7 @@ from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field, ConfigDict
 from core.schemas.enums import TaskStatus, TaskPriority
 import json
-from agents.base.enums import TaskType, AgentName
+from agents.base.enums import TaskType, AgentType
 
 class BaseProjectModel(BaseModel):
     """Base model with common configuration."""
@@ -100,7 +100,7 @@ class ProjectRequest(BaseModel):
 
 class AgentTaskRequest(BaseModel):
     id: str
-    agent_type: AgentName  # e.g., "code_generator", "reviewer"
+    agent_type: AgentType  # e.g., "code_generator", "reviewer"
     task_type: TaskType # e.g., "code_generation", "review"
     priority: TaskPriority
     context: Optional[Dict[str, Any]] = {

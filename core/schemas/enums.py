@@ -45,12 +45,3 @@ class BusinessImpact(str, Enum):
     MEDIUM = "medium"
     HIGH = "high"
     CRITICAL = "critical"
-
-class AgentType(Enum):
-    """Types of agents in the system."""
-    PROJECT_MANAGER = "project_manager"
-    KNOWLEDGE = "knowledge"
-    CODING = "coding"
-    TESTING = "testing"
-    SECURITY = "security"
-    DOCUMENTATION = "documentation" 

@@ -83,18 +83,7 @@ class Priority(str, Enum):
 ```
 
 ### 2. Type Enums
-```python
-class ResourceType(str, Enum):
-    CPU = "cpu"
-    MEMORY = "memory"
-    STORAGE = "storage"
-    NETWORK = "network"
-
-class AgentType(str, Enum):
-    Director = "director"
-    Specialist = "specialist"
-    Developer = "developer"
-    Guardian = "guardian"
+TODO: Fill in
 ```
 
 ## Validation Rules

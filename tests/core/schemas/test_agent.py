@@ -1,10 +1,6 @@
 import pytest
 from pydantic import ValidationError
-from core.schemas.agent import (
-    AgentSchema,
-    AgentStatus,
-    AgentType
-)
+from agents.base.enums import AgentStatus, AgentType, AgentSchema
 
 def test_agent_schema():
     """Test AgentSchema validation and defaults."""
