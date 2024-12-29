@@ -12,7 +12,8 @@ from core.openai import OpenAIError
 from core.monitoring import CoreMetrics, CoreLogger
 from core.storage import MessageStore
 from core.schemas import TaskSchema
-from agents.director.enums import TaskStatus, TaskPriority, BusinessImpact
+from agents.director.enums import BusinessImpact
+from core.schemas.enums import Status, Priority
 
 @pytest.fixture(autouse=True)
 async def cleanup_servers():
@@ -220,8 +221,8 @@ async def test_service_integration(core):
             id="test-task",
             name="Test Task",
             description="Test Description",
-            priority=TaskPriority.MEDIUM,
-            status=TaskStatus.PENDING,
+            priority=Priority.MEDIUM,
+            status=Status.PENDING,
             phase="phase-1"
         ).model_dump(),
         sender="test"

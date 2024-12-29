@@ -23,3 +23,28 @@ class ResourceStatus(str, Enum):
     MAINTENANCE = "maintenance"
     ERROR = "error"
     UNAVAILABLE = "unavailable"
+
+class Status(str, Enum):
+    """Status enumeration."""
+    PENDING = "pending"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    PRIORITY_ADJUSTMENT = "priority_adjustment"
+
+class Priority(str, Enum):
+    """Priority enumeration."""
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+    UKNOWN = "unknown"
+
+class MessageStatus(str, Enum):
+    """Message status enumeration."""
+    PENDING = "pending"
+    DELIVERED = "delivered"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    RETRYING = "retrying"

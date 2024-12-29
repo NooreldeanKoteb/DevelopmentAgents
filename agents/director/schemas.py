@@ -3,10 +3,12 @@ from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field, ConfigDict, field_serializer
 import json
 from agents.base.enums import TaskType, AgentType
-from .enums import TaskStatus, TaskPriority
+from .enums import BusinessImpact, ProjectStatus
+from core.schemas.base import BaseSchema, DescriptiveSchema, MetadataSchema, TimestampedSchema
+from core.schemas.resource import ResourceSchema
+from core.schemas.enums import Status, Priority
 
-    
-class BaseProjectModel(BaseModel):
+class BaseDirectorSchema(BaseModel):
     """Base model with common configuration."""
     model_config = ConfigDict(
         arbitrary_types_allowed=True,
@@ -47,12 +49,11 @@ class BaseProjectModel(BaseModel):
         kwargs.setdefault('indent', 2)
         return json.dumps(self.model_dump(*args, **kwargs))
 
-
-class AgentTaskRequest(BaseModel):
-    id: str
+# todo: Figure out the messaging schema first then build this on top
+class AgentTaskRequestSchema(BaseDirectorSchema, BaseSchema, MetadataSchema, TimestampedSchema):
     agent_type: AgentType  # e.g., "code_generator", "reviewer"
     task_type: TaskType # e.g., "code_generation", "review"
-    priority: TaskPriority
+    priority: Priority
     assigned_to: Optional[str] = Field(default=None, description="ID of assigned resource")
     context: Optional[Dict[str, Any]] = {
         "files": Optional[List[str]],
@@ -71,8 +72,6 @@ class AgentTaskRequest(BaseModel):
     expected_output: Optional[Dict[str, Any]] = Field(
         description="Expected format and structure of the task output"
     ) # Files
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    metadata: Dict[str, Any] = Field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary with proper datetime handling."""
@@ -82,32 +81,24 @@ class AgentTaskRequest(BaseModel):
         """Convert to JSON string."""
         return self.model_dump_json()
 
-class TaskSchema(BaseProjectModel):
+class TaskSchema(BaseDirectorSchema, BaseSchema, DescriptiveSchema, MetadataSchema, TimestampedSchema):
     """Schema for task data."""
-    id: str = Field(..., description="Unique identifier for the task")
     phase: Optional[str] = Field(default=None, description="Current phase of the task")
-    name: str = Field(..., description="Name of the task")
-    description: str = Field(..., description="Description of the task")
     requirements: Dict = Field(default_factory=dict, description="Task requirements")
     completion_criteria: List[str] = Field(default_factory=list, description="Completion criteria")
+    business_impact: Optional[BusinessImpact] = Field(default=None, description="Business impact of the task")
 
-    research_required: bool
-    ai_request: AgentTaskRequest
-    status: TaskStatus = Field(default=TaskStatus.PENDING, description="Current status of the task")
-    priority: TaskPriority = Field(default_factory=TaskPriority.UKNOWN, description="Priority level of the task")
-    required_specializations: List[str] = Field(default_factory=list)  # e.g., ["python", "api_design"]
+    research_required: bool = Field(default=False, description="Whether research is required for the task")
+    ai_request: AgentTaskRequestSchema = Field(..., description="AI request for the task")
+    status: Status = Field(default=Status.PENDING, description="Current status of the task")
+    priority: Priority = Field(default_factory=Priority.UKNOWN, description="Priority level of the task")
+    required_specializations: List[str] = Field(default_factory=list, description="Required specializations for the task")
 
     parent_task: Optional[str] = Field(default=None, description="Parent task ID")
-    sub_tasks: List["TaskSchema"] = Field(default_factory=list) #What is required to complete this task
-    preceding_tasks: List[str] = Field(default_factory=list) #What is required before starting this task
+    sub_tasks: List["TaskSchema"] = Field(default_factory=list, description="Sub tasks required to complete this task")
+    preceding_tasks: List[str] = Field(default_factory=list, description="What is required before starting this task")
     
-    created_at: datetime = Field(default_factory=datetime.now, description="Task creation timestamp")
-    updated_at: datetime = Field(default_factory=datetime.now, description="Task last update timestamp")
-    completed_at: Optional[datetime] = Field(default=None, description="Task completion timestamp")
-
-    metadata: Dict = Field(default_factory=dict, description="Additional metadata")
-
-    estimated_tokens: Optional[int] = None  # for LLM quota management (dont know if this is needed)
+    estimated_tokens: Optional[int] = Field(default=None, description="Estimated tokens for the task") # for LLM quota management (dont know if this is needed)
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary with proper datetime handling."""
@@ -116,6 +107,20 @@ class TaskSchema(BaseProjectModel):
     def to_json(self) -> str:
         """Convert to JSON string."""
         return self.model_dump_json()
+    
+class ProjectPhase(BaseDirectorSchema, BaseSchema, DescriptiveSchema):
+    """Project phase schema."""
+    order: int = Field(default=0, description="Order of the phase")
+    status: ProjectStatus = Field(default=ProjectStatus.PLANNING, description="Status of the phase")
+    priority: Priority = Field(default=Priority.UKNOWN, description="Priority of the phase")
+    tasks: List[TaskSchema] = Field(default_factory=list, description="Tasks in the phase")
+    preceding_phases: List["ProjectPhase"] = Field(default_factory=list, description="Phases that must be completed before this phase")
+    resources: List[ResourceSchema] = Field(default_factory=list, description="Resources allocated to the phase")
+
+class ProjectSchema(BaseDirectorSchema, BaseSchema, DescriptiveSchema, MetadataSchema, TimestampedSchema):
+    """Project schema definition."""
+    status: ProjectStatus = ProjectStatus.PLANNING
+    phases: List[ProjectPhase] = Field(default_factory=list)
     
 
     # # for refrence

@@ -1,7 +1,8 @@
 import pytest
 from pydantic import ValidationError
-from agents.director.models import TaskSchema
-from agents.director.enums import TaskStatus, TaskPriority, BusinessImpact
+from agents.director.schemas import TaskSchema
+from agents.director.enums import BusinessImpact
+from core.schemas.enums import Status, Priority
 
 def test_task_schema():
     """Test TaskSchema validation and defaults."""
@@ -9,12 +10,12 @@ def test_task_schema():
         id="test-task",
         name="Test Task",
         description="Test description",
-        status=TaskStatus.PENDING,
-        priority=TaskPriority.MEDIUM,
+        status=Status.PENDING,
+        priority=Priority.MEDIUM,
         phase="testing"
     )
     assert task.id == "test-task"
-    assert task.status == TaskStatus.PENDING
+    assert task.status == Status.PENDING
     assert task.business_impact == BusinessImpact.LOW
 
 def test_task_status_transitions():
@@ -23,12 +24,12 @@ def test_task_status_transitions():
         id="test-task",
         name="Test Task",
         description="Test description",
-        priority=TaskPriority.MEDIUM,
+        priority=Priority.MEDIUM,
     )
     
     # Test valid transitions
-    task.status = TaskStatus.IN_PROGRESS
-    assert task.status == TaskStatus.IN_PROGRESS
+    task.status = Status.IN_PROGRESS
+    assert task.status == Status.IN_PROGRESS
     
-    task.status = TaskStatus.COMPLETED
-    assert task.status == TaskStatus.COMPLETED
+    task.status = Status.COMPLETED
+    assert task.status == Status.COMPLETED

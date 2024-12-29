@@ -4,10 +4,8 @@ import asyncio
 import uuid
 import json
 
-from agents.base import BaseAgent, AgentError
-from agents.base.message import Message as BaseMessage  # Import base Message
-from core.messaging.message import Message as CoreMessage  # Import core Message for pub/sub
-from .enums import TaskStatus, TaskPriority, BusinessImpact
+from agents.base import BaseAgent, AgentError  # Import base Message
+from .enums import BusinessImpact
 from .planner import ProjectPlanner
 from .task_manager import TaskManager
 from .resource_manager import ResourceManager
@@ -15,6 +13,8 @@ from agents.director.persistence import PersistenceManager
 from redis import Redis
 from core.openai import OpenAIClient
 from agents.base.enums import AgentType
+from core.schemas.enums import Status
+from core.messaging.schemas import Message
 
 class DirectorAgent(BaseAgent):
     """Agent responsible for managing project resources and tasks."""
@@ -74,7 +74,7 @@ class DirectorAgent(BaseAgent):
                     callback=self.process_message  # Use process_message as the callback
                 )
         
-    async def _handle_message_type(self, message: CoreMessage) -> Any:
+    async def _handle_message_type(self, message: Message) -> Any:
         """Handle different types of project management messages."""
         # Handle messages based on topic if present
         if hasattr(message, 'topic') and message.topic:
@@ -101,7 +101,7 @@ class DirectorAgent(BaseAgent):
             
         return await type_handlers[message.type](message)
         
-    async def _handle_new_project(self, message: CoreMessage) -> CoreMessage:
+    async def _handle_new_project(self, message: Message) -> Message:
         """Handle new project request."""
         project_spec = message.content
         
@@ -125,7 +125,7 @@ class DirectorAgent(BaseAgent):
             }
         )
         
-        return CoreMessage(
+        return Message(
             topic="project.created",
             content={
                 "project_id": project_spec['id'],
@@ -136,7 +136,7 @@ class DirectorAgent(BaseAgent):
             sender=self.agent_id
         )
         
-    async def _handle_project_update(self, message: CoreMessage) -> Optional[CoreMessage]:
+    async def _handle_project_update(self, message: Message) -> Optional[Message]:
         """Handle project update request."""
         project_id = message.content["project_id"]
         update_type = message.content["type"]
@@ -174,7 +174,7 @@ class DirectorAgent(BaseAgent):
         # Update project context
         await self.save_to_memory(f"project:{project_id}", project_data)
         
-        return CoreMessage(
+        return Message(
             topic="project.updated",
             content={
                 "project_id": project_id,
@@ -185,7 +185,7 @@ class DirectorAgent(BaseAgent):
             sender=self.agent_id
         )
         
-    async def _handle_task_status(self, message: CoreMessage) -> Optional[CoreMessage]:
+    async def _handle_task_status(self, message: Message) -> Optional[Message]:
         """Handle task status updates."""
         task_id = message.content["task_id"]
         new_status = message.content["status"]
@@ -204,7 +204,7 @@ class DirectorAgent(BaseAgent):
         project_data["tasks"] = updated_tasks
         
         # Check if project needs reallocation
-        if new_status in [TaskStatus.COMPLETED, TaskStatus.FAILED]:
+        if new_status in [Status.COMPLETED, Status.FAILED]:
             resources = await self.resource_manager.reallocate_resources(
                 updated_tasks,
                 project_data["resources"]
@@ -214,7 +214,7 @@ class DirectorAgent(BaseAgent):
         # Update project context
         await self.save_to_memory(f"project:{project_id}", project_data)
         
-        return CoreMessage(
+        return Message(
             topic="project.task.updated",
             content={
                 "project_id": project_id,
@@ -226,7 +226,7 @@ class DirectorAgent(BaseAgent):
             sender=self.agent_id
         )
         
-    async def _handle_agent_status(self, message: CoreMessage) -> Optional[CoreMessage]:
+    async def _handle_agent_status(self, message: Message) -> Optional[Message]:
         """Handle agent status updates."""
         agent_id = message.content["agent_id"]
         new_status = message.content["status"]
@@ -246,7 +246,7 @@ class DirectorAgent(BaseAgent):
                 project_data["resources"] = resources
                 await self.save_to_memory(f"project:{project_id}", project_data)
                 
-    async def _handle_resource_status(self, message: CoreMessage) -> Optional[CoreMessage]:
+    async def _handle_resource_status(self, message: Message) -> Optional[Message]:
         """Handle resource status updates."""
         resource_id = message.content["resource_id"]
         new_status = message.content["status"]
@@ -279,13 +279,13 @@ class DirectorAgent(BaseAgent):
         task_type = task.get("type")
         
         if task_type == "create_project":
-            return await self._handle_new_project(CoreMessage(
+            return await self._handle_new_project(Message(
                 topic="project.new",
                 content=task["project_spec"],
                 sender="system"
             ))
         elif task_type == "update_project":
-            return await self._handle_project_update(CoreMessage(
+            return await self._handle_project_update(Message(
                 topic="project.update",
                 content=task["update_spec"],
                 sender="system"
@@ -301,14 +301,14 @@ class DirectorAgent(BaseAgent):
             agent_type=self.agent_type.value
         ).inc()
 
-    async def _handle_task_creation(self, message: BaseMessage) -> BaseMessage:
+    async def _handle_task_creation(self, message: Message) -> Message:
         """Handle task creation request."""
         try:
             task = await self.task_service.create_task(message.content)  # Use task_service
             resources = await self.resource_service.get_resources()
             timeline = await self.planner_service.generate_timeline([task])
             
-            return BaseMessage(
+            return Message(
                 type="task.created",
                 content={
                     "task": task,
@@ -323,9 +323,9 @@ class DirectorAgent(BaseAgent):
         # Add any specific error handling logic here
 
     async def _publish_event(self, topic: str, content: dict) -> None:
-        """Publish events using CoreMessage for pub/sub."""
+        """Publish events using Message for pub/sub."""
         if self.message_broker:
-            message = CoreMessage(
+            message = Message(
                 topic=topic,
                 content=content,
                 sender=self.agent_id

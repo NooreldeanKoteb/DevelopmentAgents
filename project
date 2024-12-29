@@ -183,72 +183,72 @@ Mitigation Strategies:
 
 Task ID: task-1
 Name: Setup development environment
-Status: TaskStatus.PENDING
-Priority: TaskPriority.CRITICAL
+Status: Status.PENDING
+Priority: Priority.CRITICAL
 Business Impact: BusinessImpact.HIGH
 Phase: Project Setup
 Created: 2024-12-26 21:21:46.522061
 
 Task ID: task-2
 Name: Initialize project repository
-Status: TaskStatus.PENDING
-Priority: TaskPriority.CRITICAL
+Status: Status.PENDING
+Priority: Priority.CRITICAL
 Business Impact: BusinessImpact.MEDIUM
 Phase: Project Setup
 Created: 2024-12-26 21:21:46.522074
 
 Task ID: task-3
 Name: Design database schema
-Status: TaskStatus.PENDING
-Priority: TaskPriority.CRITICAL
+Status: Status.PENDING
+Priority: Priority.CRITICAL
 Business Impact: BusinessImpact.HIGH
 Phase: Backend Development
 Created: 2024-12-26 21:21:46.522080
 
 Task ID: task-4
 Name: Implement authentication
-Status: TaskStatus.PENDING
-Priority: TaskPriority.CRITICAL
+Status: Status.PENDING
+Priority: Priority.CRITICAL
 Business Impact: BusinessImpact.HIGH
 Phase: Backend Development
 Created: 2024-12-26 21:21:46.522085
 
 Task ID: task-5
 Name: Develop CRUD operations for posts
-Status: TaskStatus.PENDING
-Priority: TaskPriority.CRITICAL
+Status: Status.PENDING
+Priority: Priority.CRITICAL
 Business Impact: BusinessImpact.HIGH
 Phase: Backend Development
 Created: 2024-12-26 21:21:46.522090
 
 Task ID: task-6
 Name: Setup React Native environment
-Status: TaskStatus.PENDING
-Priority: TaskPriority.CRITICAL
+Status: Status.PENDING
+Priority: Priority.CRITICAL
 Business Impact: BusinessImpact.HIGH
 Phase: Frontend Development
 Created: 2024-12-26 21:21:46.522099
 
 Task ID: task-7
 Name: Develop user interface
-Status: TaskStatus.PENDING
-Priority: TaskPriority.CRITICAL
+Status: Status.PENDING
+Priority: Priority.CRITICAL
 Business Impact: BusinessImpact.HIGH
 Phase: Frontend Development
 Created: 2024-12-26 21:21:46.522104
 
 Task ID: task-8
 Name: Implement automated tests
-Status: TaskStatus.PENDING
-Priority: TaskPriority.CRITICAL
+Status: Status.PENDING
+Priority: Priority.CRITICAL
 Business Impact: BusinessImpact.HIGH
 Phase: Testing and Deployment
 Created: 2024-12-26 21:21:46.522109
 
 Task ID: task-9
 Name: Deploy application
-Status: TaskStatus.PENDING
-Priority: TaskPriority.CRITICAL
+Status: Status.PENDING
+Priority: Priority.CRITICAL
 Business Impact: BusinessImpact.HIGH
 Phase: Testing and Deployment
 Created: 2024-12-26 21:21:46.522113

@@ -1,8 +1,8 @@
 import pytest
-from agents.director.models import TaskSchema
-from agents.director.enums import TaskStatus, TaskPriority, BusinessImpact
+from agents.director.schemas import TaskSchema
+from agents.director.enums import BusinessImpact
 from agents.director.resource_manager import ResourceManager
-
+from core.schemas.enums import Status, Priority
 class TestEndToEnd:
     @pytest.mark.asyncio
     async def test_complete_project_lifecycle(self, persistence_manager):
@@ -14,16 +14,16 @@ class TestEndToEnd:
                 id="task-1",
                 name="Task 1",
                 description="Task 1 description",
-                status=TaskStatus.PENDING,
-                priority=TaskPriority.HIGH,
+                status=Status.PENDING,
+                priority=Priority.HIGH,
                 phase="phase-1"
             ),
             TaskSchema(
                 id="task-2",
                 name="Task 2",
                 description="Task 2 description",
-                status=TaskStatus.PENDING,
-                priority=TaskPriority.MEDIUM,
+                status=Status.PENDING,
+                priority=Priority.MEDIUM,
                 phase="phase-1"
             )
         ]

@@ -1,9 +1,10 @@
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 from agents.director.persistence import PersistenceManager
-from .models import TaskSchema
+from .schemas import TaskSchema
 from .errors import TaskManagementError
-from .enums import TaskStatus, TaskPriority, BusinessImpact
+from .enums import BusinessImpact
+from core.schemas.enums import Status, Priority
 
 class TaskManager:
     def __init__(self, persistence: PersistenceManager):
@@ -65,7 +66,7 @@ class TaskManager:
         self.tasks[task.id] = task
         return task
 
-    async def get_tasks_by_priority(self, priority: TaskPriority) -> List[TaskSchema]:
+    async def get_tasks_by_priority(self, priority: Priority) -> List[TaskSchema]:
         """Get all tasks with specified priority."""
         return [
             task for task in self.tasks.values() 
@@ -76,7 +77,7 @@ class TaskManager:
         self,
         tasks: List[TaskSchema],
         task_id: str,
-        new_status: TaskStatus
+        new_status: Status
     ) -> List[TaskSchema]:
         """Update task status and manage dependencies."""
         try:
@@ -89,15 +90,15 @@ class TaskManager:
             task = task_map[task_id]
             task.status = new_status
             
-            if new_status == TaskStatus.COMPLETED:
+            if new_status == Status.COMPLETED:
                 # Update dependent tasks
                 for dependent_task in tasks:
                     if task_id in dependent_task.dependencies:
                         if all(
-                            task_map[dep].status == TaskStatus.COMPLETED
+                            task_map[dep].status == Status.COMPLETED
                             for dep in dependent_task.dependencies
                         ):
-                            dependent_task.status = TaskStatus.PENDING
+                            dependent_task.status = Status.PENDING
                             
             return list(task_map.values())
             
@@ -125,7 +126,7 @@ class TaskManager:
                         id=f"task-{len(tasks)+1}",
                         name=task_spec["name"],
                         description=task_spec["description"],
-                        status=TaskStatus.PENDING,
+                        status=Status.PENDING,
                         priority=self._determine_priority(task_spec),
                         phase=phase["name"]
                     )
@@ -164,7 +165,7 @@ class TaskManager:
                             id=f"task-{len(updated_tasks)+1}",
                             name=task_spec["name"],
                             description=task_spec["description"],
-                            status=TaskStatus.PENDING,
+                            status=Status.PENDING,
                             priority=self._determine_priority(task_spec),
                             phase=phase["name"]
                         )
@@ -176,12 +177,12 @@ class TaskManager:
         except Exception as e:
             raise TaskManagementError(f"Failed to update tasks: {str(e)}")
             
-    def _determine_priority(self, task_spec: Dict[str, Any]) -> TaskPriority:
+    def _determine_priority(self, task_spec: Dict[str, Any]) -> Priority:
         """Determine task priority based on specifications."""
         if task_spec.get("critical", False):
-            return TaskPriority.CRITICAL
+            return Priority.CRITICAL
         elif task_spec.get("high_priority", False):
-            return TaskPriority.HIGH
+            return Priority.HIGH
         elif task_spec.get("low_priority", False):
-            return TaskPriority.LOW
-        return TaskPriority.MEDIUM
+            return Priority.LOW
+        return Priority.MEDIUM

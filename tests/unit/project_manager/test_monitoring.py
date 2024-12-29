@@ -9,10 +9,12 @@ from agents.director.monitoring import (
 from core.schemas import ResourceSchema
 from core.schemas.enums import (
     ResourceType,
-    ResourceStatus
+    ResourceStatus,
+    Status,
+    Priority
 )
-from agents.director.enums import TaskStatus, TaskPriority, BusinessImpact
-from agents.director.models import TaskSchema
+from agents.director.enums import BusinessImpact
+from agents.director.schemas import TaskSchema
 
 @pytest.fixture(autouse=True)
 def clear_prometheus_registry():
@@ -43,8 +45,8 @@ async def test_task_metrics_tracking(task_metrics):
         id="test-task",
         name="Test Task",
         description="Test Description",
-        status=TaskStatus.PENDING,
-        priority=TaskPriority.HIGH,
+        status=Status.PENDING,
+        priority=Priority.HIGH,
     )
     
     # Test task creation
@@ -52,7 +54,7 @@ async def test_task_metrics_tracking(task_metrics):
     assert REGISTRY.get_sample_value('pm_task_count_total') == 1
     
     # Test status update
-    task_metrics.track_task_status_update(task, TaskStatus.IN_PROGRESS)
+    task_metrics.track_task_status_update(task, Status.IN_PROGRESS)
     assert REGISTRY.get_sample_value('pm_task_status_changes_total', {'status': 'IN_PROGRESS'}) == 1
     
     # Test task completion

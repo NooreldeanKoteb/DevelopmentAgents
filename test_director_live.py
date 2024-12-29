@@ -8,8 +8,9 @@ from agents.director.resource_manager import ResourceManager
 from agents.director.planner import ProjectPlanner
 from agents.director.persistence import PersistenceManager
 from core.messaging.message import Message
-from core.schemas.enums import TaskPriority, BusinessImpact
+from agents.director.enums import BusinessImpact
 from core.monitoring.metrics import CoreMetrics
+from core.schemas.enums import Priority
 
 def clear_metrics():
     """Clear all prometheus metrics."""
@@ -205,7 +206,7 @@ async def main():
                         "create_a_community_for_travel_enthusiasts"
                     ]
                 },
-                "priority": TaskPriority.HIGH.value,  # Use .value for enum
+                "priority": Priority.HIGH.value,  # Use .value for enum
                 "business_impact": BusinessImpact.HIGH.value,  # Use .value for enum
                 "estimated_duration": 14.0  # days
             }

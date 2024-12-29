@@ -1,16 +1,16 @@
 import pytest
 from agents.director.priority import calculate_priority_score, calculate_task_priority
-from agents.director.models import TaskSchema
-from agents.director.enums import TaskStatus, TaskPriority, BusinessImpact
-
+from agents.director.schemas import TaskSchema
+from agents.director.enums import BusinessImpact
+from core.schemas.enums import Status, Priority
 def test_calculate_task_priority_high():
     """Test high priority calculation."""
     task = TaskSchema(
         id="test-task",
         name="Test Task",
         description="Test Description",
-        status=TaskStatus.PENDING,
-        priority=TaskPriority.HIGH,
+        status=Status.PENDING,
+        priority=Priority.HIGH,
     )
     
     priority_score = calculate_priority_score(task)
@@ -22,12 +22,12 @@ def test_calculate_task_priority_medium():
         id="test-task",
         name="Test Task",
         description="Test Description",
-        status=TaskStatus.PENDING,
-        priority=TaskPriority.MEDIUM,
+        status=Status.PENDING,
+        priority=Priority.MEDIUM,
     )
     
     result = calculate_task_priority(task)
-    assert result == TaskPriority.MEDIUM
+    assert result == Priority.MEDIUM
 
 def test_calculate_task_priority_low():
     """Test low priority calculation."""
@@ -35,12 +35,12 @@ def test_calculate_task_priority_low():
         id="test-task",
         name="Test Task",
         description="Test Description",
-        status=TaskStatus.PENDING,
-        priority=TaskPriority.LOW,
+        status=Status.PENDING,
+        priority=Priority.LOW,
     )
     
     result = calculate_task_priority(task)
-    assert result == TaskPriority.LOW
+    assert result == Priority.LOW
 
 def test_calculate_task_priority_missing_fields():
     """Test priority calculation with missing fields."""
@@ -48,9 +48,9 @@ def test_calculate_task_priority_missing_fields():
         id="test-task",
         name="Test Task",
         description="Test Description",
-        status=TaskStatus.PENDING,
-        priority=TaskPriority.LOW,
+        status=Status.PENDING,
+        priority=Priority.LOW,
     )
     
     result = calculate_task_priority(task)
-    assert result == TaskPriority.LOW
+    assert result == Priority.LOW

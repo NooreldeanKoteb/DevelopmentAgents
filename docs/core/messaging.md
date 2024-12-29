@@ -72,13 +72,6 @@ Implements FIFO queue for message processing.
 **Location**: `core/messaging/schemas.py`
 
 **Key Enums**:
-```python
-class MessagePriority(str, Enum):
-    LOW = "low"
-    NORMAL = "normal"
-    HIGH = "high"
-    CRITICAL = "critical"
-
 class MessageStatus(str, Enum):
     PENDING = "pending"
     DELIVERED = "delivered"

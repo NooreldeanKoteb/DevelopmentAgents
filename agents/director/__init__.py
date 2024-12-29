@@ -1,11 +1,10 @@
 from core.schemas import ResourceSchema
 from .agent import DirectorAgent
-from .enums import TaskStatus, TaskPriority, BusinessImpact
+from .enums import BusinessImpact
+from .schemas import TaskSchema
 
 __all__ = [
     'TaskSchema',
     'DirectorAgent',
-    'TaskStatus',
-    'TaskPriority',
     'BusinessImpact'
 ]

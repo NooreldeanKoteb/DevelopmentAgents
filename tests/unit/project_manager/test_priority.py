@@ -1,7 +1,7 @@
 import pytest
 from datetime import datetime, timedelta
 from agents.director.priority import PriorityCalculator
-from core.schemas import TaskPriority
+from core.schemas import Priority
 
 class TestPriorityCalculator:
     @pytest.fixture

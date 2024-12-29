@@ -1,12 +1,11 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from agents.director.agent import DirectorAgent
-from agents.base.message import Message as BaseMessage
+from agents.base.schemas import Message
 from core.messaging.message import Message as CoreMessage
-from core.schemas.enums import ResourceStatus
+from core.schemas.enums import ResourceStatus, Status, Priority
 from core.schemas import ResourceSchema
-from agents.director.enums import TaskStatus, TaskPriority
-from agents.director.models import TaskSchema
+from agents.director.schemas import TaskSchema
 from agents.base.enums import AgentType
 import json
 
@@ -66,18 +65,18 @@ def mock_task_service():
     service.create_task = AsyncMock(return_value={
         "id": "test-task",
         "name": "Test Task",
-        "status": TaskStatus.PENDING,
+        "status": Status.PENDING,
         "description": "Test Description",
-        "priority": TaskPriority.HIGH,
+        "priority": Priority.HIGH,
         "estimated_duration": 2.0,
         "dependencies": []
     })
     service.create_tasks = AsyncMock(return_value=[{
         "id": "test-task",
         "name": "Test Task",
-        "status": TaskStatus.PENDING,
+        "status": Status.PENDING,
         "description": "Test Description",
-        "priority": TaskPriority.HIGH,
+        "priority": Priority.HIGH,
         "estimated_duration": 2.0,
         "dependencies": []
     }])
@@ -174,13 +173,13 @@ async def test_handle_task_creation(agent):
     task_data = {
         "id": "test-task",
         "name": "Test Task",
-        "status": TaskStatus.PENDING,
+        "status": Status.PENDING,
         "description": "Test Description",
-        "priority": TaskPriority.HIGH,
+        "priority": Priority.HIGH,
         "estimated_duration": 2.0,
         "dependencies": []
     }
-    message = BaseMessage(
+    message = Message(
         type="task.create",
         content=task_data,
         sender="test"
@@ -201,7 +200,7 @@ async def test_handle_new_project(agent):
         "name": "Test Project",
         "description": "Test Description",
         "requirements": {},
-        "priority": TaskPriority.HIGH,
+        "priority": Priority.HIGH,
         "estimated_duration": 10.0,
         "dependencies": []
     }
@@ -257,7 +256,7 @@ async def test_execute_task(agent):
             "name": "Test Project",
             "description": "Test Description",
             "requirements": {},
-            "priority": TaskPriority.HIGH,
+            "priority": Priority.HIGH,
             "estimated_duration": 10.0,
             "dependencies": []
         }

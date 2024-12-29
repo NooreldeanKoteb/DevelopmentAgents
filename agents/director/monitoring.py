@@ -4,7 +4,7 @@ from datetime import datetime
 import logging
 from contextlib import contextmanager
 import time
-from .enums import TaskStatus
+from core.schemas.enums import Status
 __all__ = ['ProjectMetrics', 'TaskMetrics', 'ResourceMetrics', 'setup_monitoring']
 
 class ProjectMetrics:
@@ -50,10 +50,10 @@ class TaskMetrics:
 
     def track_task_status_update(self, task, new_status):
         """Track task status updates."""
-        if isinstance(new_status, TaskStatus):
+        if isinstance(new_status, Status):
             status_str = new_status.name
         else:
-            status_str = str(new_status).replace('TaskStatus.', '')
+            status_str = str(new_status).replace('Status.', '')
         self.task_status_changes.labels(status=status_str).inc()
 
     def track_task_completion(self, task, duration):

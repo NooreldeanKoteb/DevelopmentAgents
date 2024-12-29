@@ -1,20 +1,5 @@
 from enum import Enum, auto
 
-class TaskStatus(str, Enum):
-    PENDING = "pending"
-    IN_PROGRESS = "in_progress"
-    COMPLETED = "completed"
-    FAILED = "failed"
-    PRIORITY_ADJUSTMENT = "priority_adjustment"
-
-class TaskPriority(str, Enum):
-    """Task priority enumeration."""
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-    CRITICAL = "critical"
-    UKNOWN = "unknown"
-
 class BusinessImpact(str, Enum):
     LOW = "low"
     MEDIUM = "medium"
@@ -28,3 +13,14 @@ class ActionType(str, Enum):
     RESOURCE_ALLOCATION = "resource_allocation"
     ERROR_HANDLING = "error_handling"
     PROJECT_UPDATE = "project_update"
+
+class ProjectStatus(str, Enum):
+    """Project status enumeration."""
+    PLANNING = "planning"
+    IN_PROGRESS = "in_progress"
+    ON_HOLD = "on_hold"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+    FAILED = "failed"
+    REVIEWING = "reviewing"
+    ARCHIVED = "archived"

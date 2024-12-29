@@ -2,16 +2,18 @@ import pytest
 import redis.asyncio as redis
 from datetime import datetime
 from agents.director.persistence import PersistenceManager
-
+    
 # Import enums
 from core.schemas.enums import (
+    Status,
+    Priority,
     ResourceType,
     ResourceStatus,
 )
-from agents.director.enums import TaskStatus, TaskPriority, BusinessImpact
+from agents.director.enums import BusinessImpact
 
 # Import schemas
-from agents.director.models import TaskSchema   
+from agents.director.schemas import TaskSchema   
 
 @pytest.fixture
 async def persistence_manager():
@@ -33,8 +35,8 @@ async def test_task_crud_operations(persistence_manager):
         "id": "test-task-1",
         "name": "Test Task",
         "description": "Test task description",
-        "status": TaskStatus.PENDING,
-        "priority": TaskPriority.MEDIUM,
+        "status": Status.PENDING,
+        "priority": Priority.MEDIUM,
         "business_impact": BusinessImpact.MEDIUM,
         "estimated_duration": 1.0,
         "dependencies": [],
@@ -59,13 +61,13 @@ async def test_task_crud_operations(persistence_manager):
     assert retrieved_task is not None
     assert retrieved_task.id == task["id"]
     assert retrieved_task.name == task["name"]
-    assert retrieved_task.status == TaskStatus.PENDING
+    assert retrieved_task.status == Status.PENDING
     
     # Test update
-    task["status"] = TaskStatus.IN_PROGRESS
+    task["status"] = Status.IN_PROGRESS
     await persistence_manager.save_task(task)
     updated_task = await persistence_manager.get_task(task["id"])
-    assert updated_task.status == TaskStatus.IN_PROGRESS
+    assert updated_task.status == Status.IN_PROGRESS
     
     # Test delete
     await persistence_manager.delete_task(task["id"])
@@ -81,8 +83,8 @@ async def test_task_indexing(persistence_manager):
             "id": f"test-task-{i}",
             "name": f"Test Task {i}",
             "description": f"Test task description {i}",
-            "status": TaskStatus.PENDING,
-            "priority": TaskPriority.MEDIUM,
+            "status": Status.PENDING,
+            "priority": Priority.MEDIUM,
             "business_impact": BusinessImpact.MEDIUM,
             "estimated_duration": 1.0,
             "dependencies": [],
@@ -111,15 +113,15 @@ async def test_task_indexing(persistence_manager):
     assert len(all_tasks) == 3
     
     # Test filtering by status
-    pending_tasks = await persistence_manager.list_tasks(status=TaskStatus.PENDING)
+    pending_tasks = await persistence_manager.list_tasks(status=Status.PENDING)
     assert len(pending_tasks) == 3
     
     # Update one task status
-    tasks[0]["status"] = TaskStatus.IN_PROGRESS
+    tasks[0]["status"] = Status.IN_PROGRESS
     await persistence_manager.save_task(tasks[0])
     
     # Test filtering after update
-    pending_tasks = await persistence_manager.list_tasks(status=TaskStatus.PENDING)
+    pending_tasks = await persistence_manager.list_tasks(status=Status.PENDING)
     assert len(pending_tasks) == 2
 
 @pytest.mark.asyncio
@@ -168,8 +170,8 @@ async def test_task_resource_relationship(persistence_manager):
         "id": "test-task-1",
         "name": "Test Task",
         "description": "Test task description",
-        "status": TaskStatus.PENDING,
-        "priority": TaskPriority.MEDIUM,
+        "status": Status.PENDING,
+        "priority": Priority.MEDIUM,
         "business_impact": BusinessImpact.MEDIUM,
         "estimated_duration": 1.0,
         "dependencies": [],

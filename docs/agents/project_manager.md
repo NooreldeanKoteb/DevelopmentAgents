@@ -135,7 +135,7 @@ async def check_agent_availability(self, agent_type: AgentType) -> List[BaseAgen
 ### 1. Progress Monitoring
 ```python
 class ProgressTracker:
-    async def update_progress(self, task: Task, status: TaskStatus):
+    async def update_progress(self, task: Task, status: Status):
         await self.store_progress(task, status)
         await self.update_project_status()
         
@@ -232,9 +232,9 @@ async def handle_progress_update(self, update: ProgressUpdate):
     metrics.gauge("project_progress").set(progress)
     
     # Handle completion or issues
-    if update.status == TaskStatus.COMPLETED:
+    if update.status == Status.COMPLETED:
         await self.handle_task_completion(update.task_id)
-    elif update.status == TaskStatus.FAILED:
+    elif update.status == Status.FAILED:
         await self.handle_task_failure(update.task_id)
 ```
 

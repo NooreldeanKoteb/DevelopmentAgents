@@ -1,14 +1,15 @@
 from typing import Dict, Any
 from datetime import datetime
 from core.schemas import TaskSchema
-from core.schemas.enums import TaskPriority, BusinessImpact
+from core.schemas.enums import BusinessImpact
+from core.schemas.enums import Priority
 
 def calculate_priority_score(task: TaskSchema) -> float:
     """Calculate priority score based on task attributes."""
     priority_weights = {
-        TaskPriority.HIGH: 5.0,
-        TaskPriority.MEDIUM: 3.0,
-        TaskPriority.LOW: 1.0
+        Priority.HIGH: 5.0,
+        Priority.MEDIUM: 3.0,
+        Priority.LOW: 1.0
     }
     
     impact_weights = {
@@ -20,16 +21,16 @@ def calculate_priority_score(task: TaskSchema) -> float:
     return (priority_weights[task.priority] * 
             impact_weights[task.business_impact])
 
-def calculate_task_priority(task: TaskSchema) -> TaskPriority:
+def calculate_task_priority(task: TaskSchema) -> Priority:
     """Calculate overall task priority."""
     score = calculate_priority_score(task)
     
     if score >= 8.0:
-        return TaskPriority.HIGH
+        return Priority.HIGH
     elif score >= 4.0:
-        return TaskPriority.MEDIUM
+        return Priority.MEDIUM
     else:
-        return TaskPriority.LOW
+        return Priority.LOW
 
 class PriorityCalculator:
     @staticmethod
@@ -79,17 +80,17 @@ class PriorityCalculator:
         return 40
 
     @staticmethod
-    def score_to_priority(score: float) -> TaskPriority:
+    def score_to_priority(score: float) -> Priority:
         """Convert numerical score to priority level."""
         if score >= 95:
-            return TaskPriority.HIGH
+            return Priority.HIGH
         elif score >= 70:
-            return TaskPriority.HIGH
+            return Priority.HIGH
         elif score >= 40:
-            return TaskPriority.MEDIUM
-        return TaskPriority.LOW
+            return Priority.MEDIUM
+        return Priority.LOW
 
-    def calculate_priority(self, task: Dict[str, Any]) -> TaskPriority:
+    def calculate_priority(self, task: Dict[str, Any]) -> Priority:
         """Calculate overall task priority."""
         score = 0
         

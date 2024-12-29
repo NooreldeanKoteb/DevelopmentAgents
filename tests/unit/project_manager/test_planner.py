@@ -2,9 +2,9 @@ import pytest
 from datetime import datetime
 from agents.director.planner import ProjectPlanner
 from unittest.mock import MagicMock, AsyncMock
-from agents.director.enums import TaskStatus, TaskPriority, BusinessImpact
-from agents.director.models import TaskSchema
-
+from agents.director.enums import BusinessImpact
+from agents.director.schemas import TaskSchema
+from core.schemas.enums import Status, Priority
 class TestProjectPlanner:
     @pytest.fixture
     def mock_director(self):
@@ -26,16 +26,16 @@ class TestProjectPlanner:
                 id="task-1",
                 name="Task 1",
                 description="Task 1 description",
-                status=TaskStatus.PENDING,
-                priority=TaskPriority.HIGH,
+                status=Status.PENDING,
+                priority=Priority.HIGH,
                 phase="phase-1"
             ),
             TaskSchema(
                 id="task-2",
                 name="Task 2",
                 description="Task 2 description",
-                status=TaskStatus.PENDING,
-                priority=TaskPriority.MEDIUM,
+                status=Status.PENDING,
+                priority=Priority.MEDIUM,
                 phase="phase-2",
             )
         ]

@@ -2,21 +2,16 @@ from pydantic import BaseModel, Field, validator, ConfigDict, field_serializer, 
 from datetime import datetime
 from typing import Dict, Optional, List, Any
 from .enums import ResourceType, ResourceStatus
-
-class ResourceSchema(BaseModel):
+from core.schemas.base import BaseSchema, DescriptiveSchema, MetadataSchema, TimestampedSchema
+class ResourceSchema(BaseModel, BaseSchema, DescriptiveSchema, MetadataSchema, TimestampedSchema):
     model_config = ConfigDict()
 
-    id: str = Field(..., description="Unique identifier")
-    name: str = Field(..., description="Resource name")
     type: ResourceType = Field(..., description="Resource type")
     status: ResourceStatus = Field(default=ResourceStatus.AVAILABLE, description="Current status")
     capacity: float = Field(default=1.0, ge=0.0, description="Resource capacity")
     current_usage: float = Field(default=0.0, ge=0.0, description="Current resource usage")
     limits: Dict[str, float] = Field(default_factory=dict, description="Resource limits")
     allocated_to: Optional[str] = Field(default=None, description="ID of task/agent this resource is allocated to")
-    created_at: Optional[datetime] = Field(default_factory=datetime.now, description="Creation timestamp")
-    updated_at: Optional[datetime] = Field(default_factory=datetime.now, description="Last update timestamp")
-    metadata: Dict = Field(default_factory=dict, description="Additional metadata")
 
     @field_serializer('*', when_used='json')
     def serialize_datetime(self, value: Any, _info) -> Any:

@@ -5,14 +5,15 @@ from datetime import datetime
 import json
 from enum import Enum
 from pydantic import BaseModel
-
 from core.schemas.enums import (
     ResourceType,
-    ResourceStatus
+    ResourceStatus,
+    Status,
+    Priority
 )
 from core.schemas.resource import ResourceSchema
-from .enums import TaskStatus, TaskPriority, BusinessImpact
-from .models import TaskSchema
+from .schemas import TaskSchema
+from .enums import BusinessImpact
 
 class PersistenceManager:
     def __init__(self, redis_client: Redis = None, redis_url: str = None):
@@ -37,13 +38,13 @@ class PersistenceManager:
         try:
             if key == 'status':
                 if prefix.startswith("task:"):
-                    return TaskStatus(value)
+                    return Status(value)
                 else:
                     return ResourceStatus(value)
             elif key == 'type':
                 return ResourceType(value.lower())
             elif key == 'priority':
-                return TaskPriority(value)
+                return Priority(value)
             elif key == 'business_impact':
                 return BusinessImpact(value)
             elif key in ('dependencies', 'tags', 'subtasks', 'completion_criteria', 'capabilities'):
@@ -140,7 +141,7 @@ class PersistenceManager:
         """Delete a task."""
         await self.redis.delete(f"task:{task_id}")
 
-    async def list_tasks(self, status: Optional[TaskStatus] = None) -> List[TaskSchema]:
+    async def list_tasks(self, status: Optional[Status] = None) -> List[TaskSchema]:
         """List tasks with optional status filter."""
         task_ids = await self.redis.smembers("tasks")
         tasks = []

@@ -11,13 +11,7 @@ from .resources import (
     ResourceStatus
 )
 
-from .projects import (
-    ProjectSchema,
-    ProjectStatus,
-    ProjectPhase
-)
 
-from .messages import MessageSchema, MessageType, MessageStatus
 
 __all__ = [
     # Base schemas
@@ -30,14 +24,4 @@ __all__ = [
     'ResourceSchema',
     'ResourceType',
     'ResourceStatus',
-    
-    # Project schemas and enums
-    'ProjectSchema',
-    'ProjectStatus',
-    'ProjectPhase',
-    
-    # Message schemas and enums
-    'MessageSchema',
-    'MessageType',
-    'MessageStatus',
 ] 

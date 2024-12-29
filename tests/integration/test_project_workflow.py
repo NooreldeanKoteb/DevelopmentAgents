@@ -4,12 +4,13 @@ from core.schemas.enums import (
     ResourceStatus
 )
 from core.schemas import ResourceSchema
-from agents.director.models import TaskSchema
-from agents.director.enums import TaskStatus, TaskPriority, BusinessImpact
+from agents.director.schemas import TaskSchema
+from agents.director.enums import BusinessImpact
 from datetime import datetime
 from prometheus_client import REGISTRY  
 import json
 import asyncio
+from core.schemas.enums import Status, Priority
 
 class TestProjectWorkflow:
     @pytest.fixture(autouse=True)
@@ -25,16 +26,16 @@ class TestProjectWorkflow:
             id="test-task",
             name="Test Task",
             description="Test task",
-            status=TaskStatus.PENDING,
-            priority=TaskPriority.HIGH,
+            status=Status.PENDING,
+            priority=Priority.HIGH,
             phase="phase-1"
         )
         
         result = await task_manager.create_task(task.model_dump())
-        assert result.priority == TaskPriority.HIGH
-        assert result.status == TaskStatus.PENDING
+        assert result.priority == Priority.HIGH
+        assert result.status == Status.PENDING
         
-        tasks = await task_manager.get_tasks_by_priority(TaskPriority.HIGH)
+        tasks = await task_manager.get_tasks_by_priority(Priority.HIGH)
         assert len(tasks) > 0
 
     @pytest.mark.asyncio

@@ -1,9 +1,10 @@
 from typing import List, Optional
 from datetime import datetime, timedelta
 import redis.asyncio as redis
-from .schemas import Message, MessagePriority, MessageStatus
+from .schemas import Message, MessageStatus
 from core.config import get_settings
 import asyncio
+from core.schemas.enums import Priority
 
 class QueueManager:
     """Manages message queues and their states."""
@@ -12,21 +13,21 @@ class QueueManager:
         self.settings = get_settings()
         self.redis = redis.from_url(self.settings.REDIS_URL)
     
-    async def get_queue_length(self, priority: MessagePriority) -> int:
+    async def get_queue_length(self, priority: Priority) -> int:
         """Get the length of a specific priority queue."""
         return await self.redis.llen(f"queue:{priority.value}")
     
     async def get_queue_stats(self) -> dict:
         """Get statistics for all queues."""
         stats = {}
-        for priority in MessagePriority:
+        for priority in Priority:
             stats[priority.value] = {
                 "length": await self.get_queue_length(priority),
                 "processing": await self.redis.scard(f"processing:{priority.value}")
             }
         return stats
     
-    async def clear_queue(self, priority: MessagePriority):
+    async def clear_queue(self, priority: Priority):
         """Clear a specific priority queue."""
         await self.redis.delete(f"queue:{priority.value}")
     

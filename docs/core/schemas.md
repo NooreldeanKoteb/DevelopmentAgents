@@ -42,7 +42,7 @@ class MessageSchema(BaseSchema):
     recipient: str
     message_type: MessageType
     content: Dict[str, Any]
-    priority: MessagePriority = MessagePriority.NORMAL
+    priority: Priority = Priority.NORMAL
     status: MessageStatus = MessageStatus.PENDING
     correlation_id: Optional[str] = None
 ```

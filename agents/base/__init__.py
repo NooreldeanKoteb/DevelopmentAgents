@@ -1,6 +1,6 @@
 from .base_agent import BaseAgent
 from .memory import Memory
-from .message import Message
+from .schemas import Message
 from .context import Context
 from .errors import (
     AgentError,

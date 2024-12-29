@@ -1,8 +1,8 @@
 import pytest
 from core.schemas import ResourceSchema, ResourceType, ResourceStatus
-from agents.director.enums import TaskStatus, TaskPriority, BusinessImpact
+from agents.director.enums import BusinessImpact
 from datetime import datetime
-
+from core.schemas.enums import Status, Priority
 @pytest.mark.asyncio
 async def test_save_and_get_task(persistence_manager):
     """Test saving and retrieving a task."""
@@ -10,8 +10,8 @@ async def test_save_and_get_task(persistence_manager):
         "id": "test-task",
         "name": "Test Task",
         "description": "Test Description",
-        "status": TaskStatus.PENDING,
-        "priority": TaskPriority.HIGH,
+        "status": Status.PENDING,
+        "priority": Priority.HIGH,
         "business_impact": BusinessImpact.MEDIUM,
         "estimated_duration": 2.0,
         "dependencies": [],

@@ -4,8 +4,9 @@ from unittest.mock import AsyncMock, MagicMock
 from agents.director.task_manager import TaskManager
 from agents.director.persistence import PersistenceManager
 from agents.director.errors import TaskManagementError
-from agents.director.enums import TaskStatus, TaskPriority, BusinessImpact
-from agents.director.models import TaskSchema
+from agents.director.enums import BusinessImpact
+from agents.director.schemas import TaskSchema
+from core.schemas.enums import Status, Priority
 
 @pytest.fixture
 def persistence_manager():
@@ -40,8 +41,8 @@ async def test_add_task(task_manager):
         "id": "task-1",
         "name": "Test Task",
         "description": "Test Description",
-        "status": TaskStatus.PENDING,
-        "priority": TaskPriority.HIGH,
+        "status": Status.PENDING,
+        "priority": Priority.HIGH,
         "business_impact": BusinessImpact.MEDIUM,
         "estimated_duration": 2.0,
         "dependencies": []
@@ -60,8 +61,8 @@ async def test_update_task(task_manager, persistence_manager):
         id="task-1",
         name="Original Name",
         description="Original Description",
-        status=TaskStatus.PENDING,
-        priority=TaskPriority.HIGH,
+        status=Status.PENDING,
+        priority=Priority.HIGH,
     )
     persistence_manager.get_task.return_value = existing_task
     
@@ -109,8 +110,8 @@ async def test_create_tasks_from_plan(task_manager):
     
     tasks = await task_manager.create_tasks(plan)
     assert len(tasks) == 2
-    assert tasks[0].priority == TaskPriority.CRITICAL
-    assert tasks[1].priority == TaskPriority.HIGH
+    assert tasks[0].priority == Priority.CRITICAL
+    assert tasks[1].priority == Priority.HIGH
 
 @pytest.mark.asyncio
 async def test_update_tasks_with_plan(task_manager):
@@ -120,8 +121,8 @@ async def test_update_tasks_with_plan(task_manager):
             id="task-1",
             name="Original Task",
             description="Original Description",
-            status=TaskStatus.PENDING,
-            priority=TaskPriority.HIGH,
+            status=Status.PENDING,
+            priority=Priority.HIGH,
             phase="Phase 1"
         )
     ]
@@ -157,27 +158,27 @@ async def test_update_task_status_with_dependencies(task_manager):
             id="task-1",
             name="Task 1",
             description="Description 1",
-            status=TaskStatus.PENDING,
-            priority=TaskPriority.HIGH
+            status=Status.PENDING,
+            priority=Priority.HIGH
         ),
         TaskSchema(
             id="task-2",
             name="Task 2",
             description="Description 2",
-            status=TaskStatus.BLOCKED,
-            priority=TaskPriority.HIGH
+            status=Status.BLOCKED,
+            priority=Priority.HIGH
         )
     ]
     
     updated_tasks = await task_manager.update_task_status(
         tasks,
         "task-1",
-        TaskStatus.COMPLETED
+        Status.COMPLETED
     )
     
     assert len(updated_tasks) == 2
-    assert updated_tasks[0].status == TaskStatus.COMPLETED
-    assert updated_tasks[1].status == TaskStatus.PENDING
+    assert updated_tasks[0].status == Status.COMPLETED
+    assert updated_tasks[1].status == Status.PENDING
 
 @pytest.mark.asyncio
 async def test_update_task_status_not_found(task_manager):
@@ -187,21 +188,21 @@ async def test_update_task_status_not_found(task_manager):
             id="task-1",
             name="Task 1",
             description="Description 1",
-            status=TaskStatus.PENDING,
-            priority=TaskPriority.HIGH
+            status=Status.PENDING,
+            priority=Priority.HIGH
         )
     ]
-    result = await task_manager.update_task_status(tasks, "invalid-id", TaskStatus.COMPLETED)
+    result = await task_manager.update_task_status(tasks, "invalid-id", Status.COMPLETED)
     assert len(result) == 1
-    assert result[0].status == TaskStatus.PENDING
+    assert result[0].status == Status.PENDING
 
 @pytest.mark.asyncio
 async def test_determine_priority(task_manager):
     """Test priority determination logic."""
-    assert task_manager._determine_priority({"critical": True}) == TaskPriority.CRITICAL
-    assert task_manager._determine_priority({"high_priority": True}) == TaskPriority.HIGH
-    assert task_manager._determine_priority({"low_priority": True}) == TaskPriority.LOW
-    assert task_manager._determine_priority({}) == TaskPriority.MEDIUM 
+    assert task_manager._determine_priority({"critical": True}) == Priority.CRITICAL
+    assert task_manager._determine_priority({"high_priority": True}) == Priority.HIGH
+    assert task_manager._determine_priority({"low_priority": True}) == Priority.LOW
+    assert task_manager._determine_priority({}) == Priority.MEDIUM 
 
 @pytest.mark.asyncio
 async def test_get_tasks_by_id_not_found(task_manager):
@@ -223,15 +224,15 @@ async def test_get_tasks_by_status(task_manager):
         id="task-1",
         name="Task 1",
         description="Description 1",
-        status=TaskStatus.PENDING,
-        priority=TaskPriority.HIGH
+        status=Status.PENDING,
+        priority=Priority.HIGH
     )
     task2 = TaskSchema(
         id="task-2",
         name="Task 2",
         description="Description 2",
-        status=TaskStatus.IN_PROGRESS,
-        priority=TaskPriority.MEDIUM
+        status=Status.IN_PROGRESS,
+        priority=Priority.MEDIUM
     )
     
     task_manager.tasks = {
@@ -239,7 +240,7 @@ async def test_get_tasks_by_status(task_manager):
         task2.id: task2
     }
     
-    pending_tasks = await task_manager.get_tasks_by_status(TaskStatus.PENDING)
+    pending_tasks = await task_manager.get_tasks_by_status(Status.PENDING)
     assert len(pending_tasks) == 1
     assert pending_tasks[0].id == "task-1"
 
@@ -251,15 +252,15 @@ async def test_get_tasks_by_agent(task_manager):
         id="task-1",
         name="Task 1",
         description="Description 1",
-        status=TaskStatus.PENDING,
-        priority=TaskPriority.HIGH
+        status=Status.PENDING,
+        priority=Priority.HIGH
     )
     task2 = TaskSchema(
         id="task-2",
         name="Task 2",
         description="Description 2",
-        status=TaskStatus.IN_PROGRESS,
-        priority=TaskPriority.MEDIUM
+        status=Status.IN_PROGRESS,
+        priority=Priority.MEDIUM
     )
     
     task_manager.tasks = {
@@ -279,13 +280,13 @@ async def test_update_task_status_not_found(task_manager):
             id="task-1",
             name="Task 1",
             description="Description 1",
-            status=TaskStatus.PENDING,
-            priority=TaskPriority.HIGH
+            status=Status.PENDING,
+            priority=Priority.HIGH
         )
     ]
-    result = await task_manager.update_task_status(tasks, "invalid-id", TaskStatus.COMPLETED)
+    result = await task_manager.update_task_status(tasks, "invalid-id", Status.COMPLETED)
     assert len(result) == 1
-    assert result[0].status == TaskStatus.PENDING
+    assert result[0].status == Status.PENDING
 
 @pytest.mark.asyncio
 async def test_create_tasks_error(task_manager):
@@ -315,8 +316,8 @@ async def test_update_tasks_error(task_manager):
             id="task-1",
             name="Task 1",
             description="Description 1",
-            status=TaskStatus.PENDING,
-            priority=TaskPriority.HIGH
+            status=Status.PENDING,
+            priority=Priority.HIGH
         )
     ]
     
@@ -345,8 +346,8 @@ async def test_update_task_status_error(task_manager):
             id="task-1",
             name="Task 1",
             description="Description 1",
-            status=TaskStatus.PENDING,
-            priority=TaskPriority.HIGH
+            status=Status.PENDING,
+            priority=Priority.HIGH
         )
     ]
     
