@@ -1,10 +1,22 @@
 from agents.base.enums import AgentStatus, AgentMode
 from pydantic import BaseModel, Field
+from dataclasses import dataclass
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from core.schemas.base import TimestampedSchema, MetadataSchema, BaseSchema
 from agents.base.enums import AgentType
 from core.messaging import Message
+from agents.base.enums import TaskType
+
+@dataclass
+class TopicSubscription:
+    """Defines a subscription topic and its associated task."""
+    topic: str = Field(default="", description="The topic to subscribe to")  
+    task_type: TaskType = Field(default=TaskType.UNKNOWN, description="The task type associated with the topic")
+    description: str = Field(default="", description="A description of the topic")
+    context: Optional[Dict[str, Any]] = Field(default=None, description="Context of the topic")
+    # required_permissions: List[str] = None # Not needed for now
+
 class AgentState(BaseModel):
     """Current state of the agent."""
     status: AgentStatus = Field(default=AgentStatus.IDLE, description="Current status of the agent")

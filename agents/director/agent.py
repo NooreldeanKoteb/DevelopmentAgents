@@ -15,37 +15,31 @@ from core.openai import OpenAIClient
 from agents.base.enums import AgentType
 from core.schemas.enums import Status
 from core.messaging.message import Message
+from agents.base.topic_registry import TopicRegistry
+from core.settings import settings
 
 class DirectorAgent(BaseAgent):
-    """Agent responsible for managing project resources and tasks."""
-    
+    """Agent responsible for managing project resources and tasks."""    
     def __init__(
         self,
         name: str,
-        agent_type: AgentType,
         task_service: TaskManager,
         resource_service: ResourceManager,
-        planner_service: ProjectPlanner,
         redis_client: Optional[Redis] = None,
         redis_url: Optional[str] = None
     ):
         """Initialize the Director agent."""
-        self.agent_id = str(uuid.uuid4())  # Set agent_id before super().__init__
         super().__init__(
-            agent_id=self.agent_id,
             name=name,
             agent_type=AgentType.DIRECTOR,
             redis_client=redis_client,
             redis_url=redis_url
         )
-        
-        self.task_service = task_service
-        self.resource_service = resource_service
+
         self.openai = OpenAIClient()  # Initialize OpenAI client here
-        
-        # Pass self to planner so it can use our OpenAI client
-        self.planner_service = planner_service or ProjectPlanner(agent=self)
-        
+        self.system_status = Status.ACTIVE
+        self.agent_heartbeats: Dict[str, datetime] = {}  # Track agent heartbeats
+
     async def initialize(self) -> None:
         """Initialize Director components."""
         await super().initialize()
@@ -60,13 +54,7 @@ class DirectorAgent(BaseAgent):
         
         # Subscribe to topics using process_message as the callback
         if self.message_broker:
-            topics = [
-                "project.new",
-                "project.update",
-                "task.status",
-                "agent.status",
-                "resource.status"
-            ]
+            topics = TopicRegistry.get_agent_topics(AgentType.DIRECTOR)
             
             for topic in topics:
                 await self.message_broker.subscribe(
@@ -76,30 +64,40 @@ class DirectorAgent(BaseAgent):
         
     async def _handle_message_type(self, message: Message) -> Any:
         """Handle different types of project management messages."""
-        # Handle messages based on topic if present
-        if hasattr(message, 'topic') and message.topic:
-            topic_handlers = {
-                "project.new": self._handle_new_project,
-                "project.update": self._handle_project_update,
-                "task.status": self._handle_task_status,
-                "agent.status": self._handle_agent_status,
-                "resource.status": self._handle_resource_status
-            }
-            if message.topic in topic_handlers:
-                return await topic_handlers[message.topic](message)
-        
-        # Fall back to type-based handling
-        type_handlers = {
-            "task.create": self._handle_task_creation,
-            "task.update": self._handle_task_status,
-            "project.create": self._handle_new_project,
-            "project.update": self._handle_project_update
+        # Get subscription details from registry
+        subscription = TopicRegistry.get_subscription(message.topic)
+        if not subscription:
+            raise AgentError(f"Unsupported topic: {message.topic}")
+
+        # Map topics to handlers
+        topic_handlers = {
+            # Project Management
+            "director.project.create": self._handle_new_project,
+            "director.project.update": self._handle_project_update,
+            "director.project.delete": self._handle_project_deletion,
+            
+            # Task Management
+            "director.task.create": self._handle_task_creation,
+            "director.task.update": self._handle_task_status,
+            "director.task.delete": self._handle_task_deletion,
+            "director.task.assign": self._handle_task_assignment,
+            
+            # Status Updates
+            "task.status": self._handle_task_status,
+            "agent.status": self._handle_agent_status,
+            "resource.status": self._handle_resource_status,
+            
+            # Global Topics
+            "system.status": self._handle_system_status,
+            "system.error": self._handle_system_error,
+            "agent.heartbeat": self._handle_heartbeat
         }
         
-        if message.type not in type_handlers:
-            raise AgentError(f"Unsupported message type: {message.type}")
-            
-        return await type_handlers[message.type](message)
+        handler = topic_handlers.get(message.topic)
+        if not handler:
+            raise AgentError(f"No handler for topic: {message.topic}")
+        
+        return await handler(message)
         
     async def _handle_new_project(self, message: Message) -> Message:
         """Handle new project request."""
@@ -295,6 +293,7 @@ class DirectorAgent(BaseAgent):
         
     async def handle_error(self, error: Exception) -> None:
         """Handle agent errors."""
+        # TODO: Implement error handling    
         self.logger.logger.error(f"Error in Director: {str(error)}")
         self.metrics.error_count.labels(
             agent_id=self.agent_id,
@@ -331,3 +330,167 @@ class DirectorAgent(BaseAgent):
                 sender=self.agent_id
             )
             await self.message_broker.publish(message)
+
+    async def _handle_project_deletion(self, message: Message) -> Optional[Message]:
+        """Handle project deletion request."""
+        project_id = message.content["project_id"]
+        
+        # Delete project data
+        await self.memory.delete(f"project:{project_id}")
+        
+        # Release resources
+        await self.resource_service.release_project_resources(project_id)
+        
+        return Message(
+            topic="project.deleted",
+            content={"project_id": project_id},
+            sender=self.agent_id
+        )
+
+    async def _handle_task_deletion(self, message: Message) -> Optional[Message]:
+        """Handle task deletion request."""
+        task_id = message.content["task_id"]
+        project_id = message.content["project_id"]
+        
+        project_data = await self.recall_from_memory(f"project:{project_id}")
+        if not project_data:
+            raise AgentError(f"Project {project_id} not found")
+        
+        # Remove task and update project
+        updated_tasks = await self.task_service.delete_task(
+            project_data["tasks"],
+            task_id
+        )
+        project_data["tasks"] = updated_tasks
+        
+        # Update resources
+        resources = await self.resource_service.reallocate_resources(
+            updated_tasks,
+            project_data["resources"]
+        )
+        project_data["resources"] = resources
+        
+        await self.save_to_memory(f"project:{project_id}", project_data)
+        
+        return Message(
+            topic="task.deleted",
+            content={
+                "project_id": project_id,
+                "task_id": task_id,
+                "tasks": updated_tasks,
+                "resources": resources
+            },
+            sender=self.agent_id
+        )
+
+    async def _handle_task_assignment(self, message: Message) -> Optional[Message]:
+        """Handle task assignment request."""
+        task_id = message.content["task_id"]
+        agent_id = message.content["agent_id"]
+        project_id = message.content["project_id"]
+        
+        project_data = await self.recall_from_memory(f"project:{project_id}")
+        if not project_data:
+            raise AgentError(f"Project {project_id} not found")
+        
+        # Update task assignment
+        updated_tasks = await self.task_service.assign_task(
+            project_data["tasks"],
+            task_id,
+            agent_id
+        )
+        project_data["tasks"] = updated_tasks
+        
+        await self.save_to_memory(f"project:{project_id}", project_data)
+        
+        return Message(
+            topic="task.assigned",
+            content={
+                "project_id": project_id,
+                "task_id": task_id,
+                "agent_id": agent_id,
+                "tasks": updated_tasks
+            },
+            sender=self.agent_id
+        )
+
+    async def _handle_system_status(self, message: Message) -> None:
+        """Handle system status updates."""
+        status = message.content["status"]
+        self.system_status = status
+        await self._check_system_impact(status)
+
+    async def _handle_system_error(self, message: Message) -> None:
+        """Handle system error notifications."""
+        error = message.content["error"]
+        await self.handle_error(error)
+
+    async def _handle_heartbeat(self, message: Message) -> None:
+        """Handle agent heartbeat messages."""
+        agent_id = message.content["agent_id"]
+        timestamp = message.content["timestamp"]
+        # Update agent heartbeat tracking
+        self.agent_heartbeats[agent_id] = timestamp
+        await self._check_agent_health(agent_id)
+
+    async def _check_system_impact(self, status: str) -> None:
+        """Check if system status impacts any projects."""
+        if status in ["error", "maintenance"]:
+            projects = await self._get_active_projects()
+            for project_id in projects:
+                await self._handle_project_system_impact(project_id, status)
+
+    async def _check_agent_health(self, agent_id: str) -> None:
+        """Check agent health based on heartbeat."""
+        last_heartbeat = self.agent_heartbeats.get(agent_id)
+        if last_heartbeat:
+            # Check if heartbeat is too old
+            if (datetime.now() - last_heartbeat).seconds > settings.HEARTBEAT_TIMEOUT:
+                await self._handle_agent_status(Message(
+                    topic="agent.status",
+                    content={
+                        "agent_id": agent_id,
+                        "status": "offline"
+                    },
+                    sender="system"
+                ))
+
+    async def _handle_project_system_impact(self, project_id: str, status: str) -> None:
+        """Handle system status impact on a project.
+        
+        Args:
+            project_id: The ID of the project to check
+            status: The system status affecting the project
+        """
+        project_data = await self.recall_from_memory(f"project:{project_id}")
+        if not project_data:
+            return
+
+        if status == "error":
+            # Pause active tasks
+            updated_tasks = await self.task_service.pause_active_tasks(
+                project_data["tasks"],
+                reason=f"System error: {status}"
+            )
+            project_data["tasks"] = updated_tasks
+
+        elif status == "maintenance":
+            # Schedule tasks around maintenance
+            updated_tasks = await self.task_service.reschedule_tasks(
+                project_data["tasks"],
+                delay_minutes=30  # Configurable delay
+            )
+            project_data["tasks"] = updated_tasks
+
+        # Update project data
+        await self.save_to_memory(f"project:{project_id}", project_data)
+
+        # Notify relevant agents
+        await self._publish_event(
+            topic="project.status.update",
+            content={
+                "project_id": project_id,
+                "status": status,
+                "tasks": project_data["tasks"]
+            }
+        )

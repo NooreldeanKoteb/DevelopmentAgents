@@ -90,6 +90,7 @@ class TaskType(Enum):
     OPERATOR_CHANGE_PERMISSIONS = "operator_change_permissions"
     OPERATOR_CHECK_FILE_EXISTS = "operator_check_file_exists"
     OPERATOR_CHECK_DIRECTORY_EXISTS = "operator_check_directory_exists"
+    OPERATOR_SYSTEM_STATUS = "operator_system_status"
     
     # Developer Tasks
     DEVELOPER_GENERATION_BACKEND = "developer_generation_backend"
@@ -133,5 +134,7 @@ class TaskType(Enum):
     DESIGNER_UI_UPDATE = "designer_ui_update"
     DESIGNER_UX_UPDATE = "designer_ux_update"
 
-    # Placeholder
+    # Global Topics
+    AGENT_HEARTBEAT = "agent_heartbeat"
+    AGENT_STATUS = "agent_status"
     UNKNOWN = "unknown"

@@ -109,7 +109,7 @@ class BaseAgent(ABC):
     async def _handle_message_type(self, message: Message) -> Any:
         """Internal message handling logic."""
         raise NotImplementedError("Subclasses must implement _handle_message_type")
-        
+    
     async def handle_error(self, error: Exception) -> None:
         """Handle agent errors."""
         self.logger.logger.error(

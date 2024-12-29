@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     ENVIRONMENT: Environment = Environment.DEVELOPMENT
     DEBUG: bool = False
     
+    # Agent Settings
+    HEARTBEAT_TIMEOUT = 180  # Seconds before considering an agent offline
+
     # OpenAI
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "dummy-key-for-testing")
     if not OPENAI_API_KEY:
