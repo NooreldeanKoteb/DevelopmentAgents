@@ -5,8 +5,8 @@ from agents.base.enums import AgentType
 from typing import Dict, Any
 from datetime import datetime
 import uuid
-from core.schemas.enums import MessageType, MessageStatus
-from core.schemas import MessageSchema
+from core.messaging.schemas import Message
+from core.messaging.enums import MessageType
 
 @pytest.fixture
 def mock_metrics():
@@ -45,7 +45,7 @@ def test_incomplete_agent_instantiation():
 async def test_concrete_agent_implementation(redis_client, mock_metrics):
     """Test that a concrete implementation works correctly."""
     class ConcreteAgent(BaseAgent):
-        async def _handle_message_type(self, message: MessageSchema) -> Dict[str, Any]:
+        async def _handle_message_type(self, message: Message) -> Dict[str, Any]:
             return {"status": "handled", "message_id": message.id}
 
     agent = ConcreteAgent(

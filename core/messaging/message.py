@@ -1,9 +1,14 @@
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict, field_serializer
 from uuid import uuid4
 from typing import Any, Dict, Optional
+from core.schemas.enums import Priority, MessageStatus, MessageType
 
-class Message(BaseModel):
+class BaseMessage(BaseModel):
+    """Base message schema for communication."""
+    model_config = ConfigDict()
+
+class ServiceMessage(BaseMessage):
     """Message model for inter-service communication."""
     id: str = Field(default_factory=lambda: str(uuid4()))
     topic: str
@@ -30,3 +35,32 @@ class Message(BaseModel):
             content=content,
             sender=sender
         ) 
+    
+
+
+#TOdo: figure this out
+class AgentMessage(BaseMessage):
+    """Base message schema for inter-agent communication."""
+
+    id: UUID = Field(default_factory=uuid4)
+    agent_id: str
+    sender: str
+    recipient: str
+    type: MessageType
+    content: Any
+    priority: Priority = Priority.NORMAL
+    payload: Dict[str, Any]
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    status: MessageStatus = MessageStatus.PENDING
+    retry_count: int = 0
+    max_retries: int = 3
+    processed_at: Optional[datetime] = None
+    error: Optional[Dict[str, Any]] = None
+
+    @field_serializer('*', when_used='json')
+    def serialize_datetime(self, value: Any, _info) -> Any:
+        if isinstance(value, datetime):
+            return value.isoformat()
+        return value
+    
