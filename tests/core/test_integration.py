@@ -8,10 +8,11 @@ from unittest.mock import MagicMock
 
 from core.integration import CoreIntegration
 from core.messaging import Message
-from core.schemas import TaskSchema, TaskStatus, TaskPriority, BusinessImpact
 from core.openai import OpenAIError
 from core.monitoring import CoreMetrics, CoreLogger
 from core.storage import MessageStore
+from core.schemas import TaskSchema
+from agents.director.enums import TaskStatus, TaskPriority, BusinessImpact
 
 @pytest.fixture(autouse=True)
 async def cleanup_servers():
@@ -220,11 +221,8 @@ async def test_service_integration(core):
             name="Test Task",
             description="Test Description",
             priority=TaskPriority.MEDIUM,
-            business_impact=BusinessImpact.LOW,
-            estimated_duration=1.0,
             status=TaskStatus.PENDING,
-            phase="phase-1",
-            dependencies=[]
+            phase="phase-1"
         ).model_dump(),
         sender="test"
     )

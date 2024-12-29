@@ -7,10 +7,8 @@ from agents.director.task_manager import TaskManager
 from agents.director.resource_manager import ResourceManager
 from agents.director.planner import ProjectPlanner
 from agents.director.persistence import PersistenceManager
-from core.schemas import (
-    TaskSchema, TaskStatus, TaskPriority,
-    BusinessImpact, ResourceSchema
-)
+from core.schemas import ResourceSchema
+from agents.director.enums import TaskStatus, TaskPriority, BusinessImpact
 
 # Add the project root directory to Python path
 project_root = os.path.dirname(os.path.abspath(__file__))

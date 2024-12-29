@@ -1,8 +1,9 @@
 import pytest
 from datetime import datetime
 from agents.director.planner import ProjectPlanner
-from core.schemas import TaskSchema, TaskStatus, TaskPriority, BusinessImpact
 from unittest.mock import MagicMock, AsyncMock
+from agents.director.enums import TaskStatus, TaskPriority, BusinessImpact
+from agents.director.models import TaskSchema
 
 class TestProjectPlanner:
     @pytest.fixture
@@ -27,10 +28,7 @@ class TestProjectPlanner:
                 description="Task 1 description",
                 status=TaskStatus.PENDING,
                 priority=TaskPriority.HIGH,
-                business_impact=BusinessImpact.HIGH,
-                estimated_duration="2.0",
-                phase="phase-1",
-                dependencies=[]
+                phase="phase-1"
             ),
             TaskSchema(
                 id="task-2",
@@ -38,10 +36,7 @@ class TestProjectPlanner:
                 description="Task 2 description",
                 status=TaskStatus.PENDING,
                 priority=TaskPriority.MEDIUM,
-                business_impact=BusinessImpact.MEDIUM,
-                estimated_duration="1.5",
                 phase="phase-2",
-                dependencies=["task-1"]
             )
         ]
 

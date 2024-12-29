@@ -1,5 +1,6 @@
 import pytest
-from core.schemas import TaskSchema, ResourceSchema, TaskStatus, TaskPriority, BusinessImpact, ResourceType, ResourceStatus
+from core.schemas import ResourceSchema, ResourceType, ResourceStatus
+from agents.director.enums import TaskStatus, TaskPriority, BusinessImpact
 from datetime import datetime
 
 @pytest.mark.asyncio

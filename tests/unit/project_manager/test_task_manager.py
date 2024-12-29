@@ -1,10 +1,11 @@
 import pytest
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock
-from core.schemas import TaskSchema, TaskStatus, TaskPriority, BusinessImpact
 from agents.director.task_manager import TaskManager
 from agents.director.persistence import PersistenceManager
 from agents.director.errors import TaskManagementError
+from agents.director.enums import TaskStatus, TaskPriority, BusinessImpact
+from agents.director.models import TaskSchema
 
 @pytest.fixture
 def persistence_manager():
@@ -61,9 +62,6 @@ async def test_update_task(task_manager, persistence_manager):
         description="Original Description",
         status=TaskStatus.PENDING,
         priority=TaskPriority.HIGH,
-        business_impact=BusinessImpact.MEDIUM,
-        estimated_duration=2.0,
-        dependencies=[]
     )
     persistence_manager.get_task.return_value = existing_task
     
@@ -124,9 +122,6 @@ async def test_update_tasks_with_plan(task_manager):
             description="Original Description",
             status=TaskStatus.PENDING,
             priority=TaskPriority.HIGH,
-            business_impact=BusinessImpact.MEDIUM,
-            estimated_duration=2.0,
-            dependencies=[],
             phase="Phase 1"
         )
     ]
@@ -163,20 +158,14 @@ async def test_update_task_status_with_dependencies(task_manager):
             name="Task 1",
             description="Description 1",
             status=TaskStatus.PENDING,
-            priority=TaskPriority.HIGH,
-            business_impact=BusinessImpact.MEDIUM,
-            estimated_duration=2.0,
-            dependencies=[]
+            priority=TaskPriority.HIGH
         ),
         TaskSchema(
             id="task-2",
             name="Task 2",
             description="Description 2",
             status=TaskStatus.BLOCKED,
-            priority=TaskPriority.HIGH,
-            business_impact=BusinessImpact.MEDIUM,
-            estimated_duration=3.0,
-            dependencies=["task-1"]
+            priority=TaskPriority.HIGH
         )
     ]
     
@@ -199,10 +188,7 @@ async def test_update_task_status_not_found(task_manager):
             name="Task 1",
             description="Description 1",
             status=TaskStatus.PENDING,
-            priority=TaskPriority.HIGH,
-            business_impact=BusinessImpact.MEDIUM,
-            estimated_duration=2.0,
-            dependencies=[]
+            priority=TaskPriority.HIGH
         )
     ]
     result = await task_manager.update_task_status(tasks, "invalid-id", TaskStatus.COMPLETED)
@@ -238,18 +224,14 @@ async def test_get_tasks_by_status(task_manager):
         name="Task 1",
         description="Description 1",
         status=TaskStatus.PENDING,
-        priority=TaskPriority.HIGH,
-        business_impact=BusinessImpact.MEDIUM,
-        estimated_duration=2.0
+        priority=TaskPriority.HIGH
     )
     task2 = TaskSchema(
         id="task-2",
         name="Task 2",
         description="Description 2",
         status=TaskStatus.IN_PROGRESS,
-        priority=TaskPriority.MEDIUM,
-        business_impact=BusinessImpact.LOW,
-        estimated_duration=1.0
+        priority=TaskPriority.MEDIUM
     )
     
     task_manager.tasks = {
@@ -270,20 +252,14 @@ async def test_get_tasks_by_agent(task_manager):
         name="Task 1",
         description="Description 1",
         status=TaskStatus.PENDING,
-        priority=TaskPriority.HIGH,
-        business_impact=BusinessImpact.MEDIUM,
-        estimated_duration=2.0,
-        assigned_to="agent-1"
+        priority=TaskPriority.HIGH
     )
     task2 = TaskSchema(
         id="task-2",
         name="Task 2",
         description="Description 2",
         status=TaskStatus.IN_PROGRESS,
-        priority=TaskPriority.MEDIUM,
-        business_impact=BusinessImpact.LOW,
-        estimated_duration=1.0,
-        assigned_to="agent-2"
+        priority=TaskPriority.MEDIUM
     )
     
     task_manager.tasks = {
@@ -304,10 +280,7 @@ async def test_update_task_status_not_found(task_manager):
             name="Task 1",
             description="Description 1",
             status=TaskStatus.PENDING,
-            priority=TaskPriority.HIGH,
-            business_impact=BusinessImpact.MEDIUM,
-            estimated_duration=2.0,
-            dependencies=[]
+            priority=TaskPriority.HIGH
         )
     ]
     result = await task_manager.update_task_status(tasks, "invalid-id", TaskStatus.COMPLETED)
@@ -343,9 +316,7 @@ async def test_update_tasks_error(task_manager):
             name="Task 1",
             description="Description 1",
             status=TaskStatus.PENDING,
-            priority=TaskPriority.HIGH,
-            business_impact=BusinessImpact.MEDIUM,
-            estimated_duration=2.0
+            priority=TaskPriority.HIGH
         )
     ]
     
@@ -375,9 +346,7 @@ async def test_update_task_status_error(task_manager):
             name="Task 1",
             description="Description 1",
             status=TaskStatus.PENDING,
-            priority=TaskPriority.HIGH,
-            business_impact=BusinessImpact.MEDIUM,
-            estimated_duration=2.0
+            priority=TaskPriority.HIGH
         )
     ]
     

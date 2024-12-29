@@ -2,10 +2,10 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from datetime import datetime
 from agents.director.agent import DirectorAgent
-from core.schemas import TaskSchema
-from core.schemas.enums import TaskStatus, TaskPriority, BusinessImpact
 from agents.base.message import Message
 from agents.director.planner import ProjectPlanner
+from agents.director.enums import TaskStatus, TaskPriority, BusinessImpact
+from agents.director.models import TaskSchema
 
 @pytest.fixture
 def sample_message():
@@ -61,10 +61,7 @@ async def test_process_message(sample_message, redis_client):
         description="Test Description",
         status=TaskStatus.PENDING,
         priority=TaskPriority.HIGH,
-        business_impact=BusinessImpact.MEDIUM,
-        estimated_duration=2.0,
         phase="phase-1",
-        dependencies=[]
     )
     mock_planner.generate_timeline.return_value = {}
     mock_resource_manager.get_resources.return_value = []

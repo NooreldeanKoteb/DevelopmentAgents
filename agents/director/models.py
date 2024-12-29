@@ -1,10 +1,11 @@
 from datetime import datetime
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, Field, ConfigDict
-from core.schemas.enums import TaskStatus, TaskPriority
+from pydantic import BaseModel, Field, ConfigDict, field_serializer
 import json
 from agents.base.enums import TaskType, AgentType
+from .enums import TaskStatus, TaskPriority
 
+    
 class BaseProjectModel(BaseModel):
     """Base model with common configuration."""
     model_config = ConfigDict(
@@ -17,6 +18,12 @@ class BaseProjectModel(BaseModel):
         }
     )
 
+    @field_serializer('*', when_used='json')
+    def serialize_datetime(self, value: Any, _info) -> Any:
+        if isinstance(value, datetime):
+            return value.isoformat()
+        return value
+    
     def model_dump(self, *args, **kwargs):
         """Convert to dictionary with datetime handling."""
         exclude_none = kwargs.pop('exclude_none', True)
@@ -41,68 +48,12 @@ class BaseProjectModel(BaseModel):
         return json.dumps(self.model_dump(*args, **kwargs))
 
 
-class ProjectRequest(BaseModel):
-    project_id: str
-    request_id: str = Field(default_factory=lambda: str(uuid4()))
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
-    requesting_agent: str
-    target_agents: List[str] = Field(
-        description="List of agent IDs that should handle the tasks"
-    )
-    tasks: List[AITaskRequest]
-    metadata: Dict[str, Any] = Field(
-        default_factory=dict,
-        description="Additional project-level metadata"
-    )
-    deadline: Optional[datetime] = None
-    max_retries: int = Field(default=3, ge=0)
-    required_capabilities: List[str] = Field(
-        default_factory=list,
-        description="Required capabilities for handling the tasks"
-    )
-    
-    class Config:
-        use_enum_values = True
-        json_schema_extra = {
-            "example": {
-                "project_id": "proj_123",
-                "requesting_agent": "Director",
-                "target_agents": ["coding_agent", "testing_agent"],
-                "tasks": [
-                    {
-                        "task_id": "task_1",
-                        "task_type": "code_generation",
-                        "priority": "high",
-                        "context": {
-                            "file_path": "src/feature/new_module.py",
-                            "requirements": ["Implement async handler", "Add error handling"],
-                            "code_snippets": {"existing_code": "..."}
-                        },
-                        "dependencies": [],
-                        "constraints": {
-                            "max_complexity": "O(n)",
-                            "memory_limit": "100MB",
-                            "security_requirements": ["no_eval", "input_validation"]
-                        },
-                        "expected_output": {
-                            "format": "python_code",
-                            "files": ["new_module.py", "test_new_module.py"]
-                        }
-                    }
-                ],
-                "metadata": {
-                    "project_name": "AI Development System",
-                    "priority_level": "high",
-                    "security_level": "standard"
-                }
-            }
-        }
-
 class AgentTaskRequest(BaseModel):
     id: str
     agent_type: AgentType  # e.g., "code_generator", "reviewer"
     task_type: TaskType # e.g., "code_generation", "review"
     priority: TaskPriority
+    assigned_to: Optional[str] = Field(default=None, description="ID of assigned resource")
     context: Optional[Dict[str, Any]] = {
         "files": Optional[List[str]],
         "code_snippets": Optional[List[str]],
@@ -133,20 +84,28 @@ class AgentTaskRequest(BaseModel):
 
 class TaskSchema(BaseProjectModel):
     """Schema for task data."""
-    id: str
-    title: str
-    description: str
+    id: str = Field(..., description="Unique identifier for the task")
+    phase: Optional[str] = Field(default=None, description="Current phase of the task")
+    name: str = Field(..., description="Name of the task")
+    description: str = Field(..., description="Description of the task")
+    requirements: Dict = Field(default_factory=dict, description="Task requirements")
+    completion_criteria: List[str] = Field(default_factory=list, description="Completion criteria")
+
     research_required: bool
     ai_request: AgentTaskRequest
-    status: TaskStatus = TaskStatus.PENDING
-    priority: TaskPriority = Field(default_factory=TaskPriority.UKNOWN)
+    status: TaskStatus = Field(default=TaskStatus.PENDING, description="Current status of the task")
+    priority: TaskPriority = Field(default_factory=TaskPriority.UKNOWN, description="Priority level of the task")
     required_specializations: List[str] = Field(default_factory=list)  # e.g., ["python", "api_design"]
+
+    parent_task: Optional[str] = Field(default=None, description="Parent task ID")
     sub_tasks: List["TaskSchema"] = Field(default_factory=list) #What is required to complete this task
     preceding_tasks: List[str] = Field(default_factory=list) #What is required before starting this task
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
-    completed_at: Optional[datetime] = None
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    
+    created_at: datetime = Field(default_factory=datetime.now, description="Task creation timestamp")
+    updated_at: datetime = Field(default_factory=datetime.now, description="Task last update timestamp")
+    completed_at: Optional[datetime] = Field(default=None, description="Task completion timestamp")
+
+    metadata: Dict = Field(default_factory=dict, description="Additional metadata")
 
     estimated_tokens: Optional[int] = None  # for LLM quota management (dont know if this is needed)
 
@@ -157,3 +116,40 @@ class TaskSchema(BaseProjectModel):
     def to_json(self) -> str:
         """Convert to JSON string."""
         return self.model_dump_json()
+    
+
+    # # for refrence
+    # json_schema_extra = {
+    #         "example": {
+    #             "project_id": "proj_123",
+    #             "requesting_agent": "Director",
+    #             "target_agents": ["coding_agent", "testing_agent"],
+    #             "tasks": [
+    #                 {
+    #                     "task_id": "task_1",
+    #                     "task_type": "code_generation",
+    #                     "priority": "high",
+    #                     "context": {
+    #                         "file_path": "src/feature/new_module.py",
+    #                         "requirements": ["Implement async handler", "Add error handling"],
+    #                         "code_snippets": {"existing_code": "..."}
+    #                     },
+    #                     "dependencies": [],
+    #                     "constraints": {
+    #                         "max_complexity": "O(n)",
+    #                         "memory_limit": "100MB",
+    #                         "security_requirements": ["no_eval", "input_validation"]
+    #                     },
+    #                     "expected_output": {
+    #                         "format": "python_code",
+    #                         "files": ["new_module.py", "test_new_module.py"]
+    #                     }
+    #                 }
+    #             ],
+    #             "metadata": {
+    #                 "project_name": "AI Development System",
+    #                 "priority_level": "high",
+    #                 "security_level": "standard"
+    #             }
+    #         }
+    #     }

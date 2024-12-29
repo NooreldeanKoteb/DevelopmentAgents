@@ -1,7 +1,7 @@
 import pytest
-from core.schemas import TaskSchema
-from core.schemas.enums import TaskStatus, TaskPriority, BusinessImpact
 from agents.director.priority import calculate_priority_score, calculate_task_priority
+from agents.director.models import TaskSchema
+from agents.director.enums import TaskStatus, TaskPriority, BusinessImpact
 
 def test_calculate_task_priority_high():
     """Test high priority calculation."""
@@ -11,9 +11,6 @@ def test_calculate_task_priority_high():
         description="Test Description",
         status=TaskStatus.PENDING,
         priority=TaskPriority.HIGH,
-        business_impact=BusinessImpact.HIGH,
-        estimated_duration=2.0,
-        dependencies=[]
     )
     
     priority_score = calculate_priority_score(task)
@@ -27,9 +24,6 @@ def test_calculate_task_priority_medium():
         description="Test Description",
         status=TaskStatus.PENDING,
         priority=TaskPriority.MEDIUM,
-        business_impact=BusinessImpact.MEDIUM,
-        estimated_duration=3.0,
-        dependencies=["task-1"]
     )
     
     result = calculate_task_priority(task)
@@ -43,9 +37,6 @@ def test_calculate_task_priority_low():
         description="Test Description",
         status=TaskStatus.PENDING,
         priority=TaskPriority.LOW,
-        business_impact=BusinessImpact.LOW,
-        estimated_duration=1.0,
-        dependencies=[]
     )
     
     result = calculate_task_priority(task)
@@ -59,9 +50,6 @@ def test_calculate_task_priority_missing_fields():
         description="Test Description",
         status=TaskStatus.PENDING,
         priority=TaskPriority.LOW,
-        business_impact=BusinessImpact.LOW,
-        estimated_duration=1.0,
-        dependencies=[]
     )
     
     result = calculate_task_priority(task)

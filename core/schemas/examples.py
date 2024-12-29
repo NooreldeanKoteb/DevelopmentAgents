@@ -8,14 +8,6 @@ class AgentMessageSchema(BaseSchema):
     content: Dict[str, Any]
     metadata: Optional[Dict[str, Any]] = None
 
-class TaskSchema(BaseSchema):
-    """Schema for tasks."""
-    task_id: str
-    task_type: str
-    priority: int
-    parameters: Dict[str, Any]
-    dependencies: List[str] = []
-
 class ResultSchema(BaseSchema):
     """Schema for task results."""
     task_id: str

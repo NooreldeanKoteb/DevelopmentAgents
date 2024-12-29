@@ -1,12 +1,11 @@
 import pytest
 from core.schemas.enums import (
-    TaskStatus,
-    TaskPriority,
-    BusinessImpact,
     ResourceType,
     ResourceStatus
 )
-from core.schemas import TaskSchema, ResourceSchema
+from core.schemas import ResourceSchema
+from agents.director.models import TaskSchema
+from agents.director.enums import TaskStatus, TaskPriority, BusinessImpact
 from datetime import datetime
 from prometheus_client import REGISTRY  
 import json
@@ -28,8 +27,6 @@ class TestProjectWorkflow:
             description="Test task",
             status=TaskStatus.PENDING,
             priority=TaskPriority.HIGH,
-            business_impact=BusinessImpact.HIGH,
-            estimated_duration=1.5,
             phase="phase-1"
         )
         

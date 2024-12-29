@@ -2,15 +2,17 @@ from enum import Enum
 
 class ResourceType(str, Enum):
     """Resource type enumeration."""
+    AGENT = "agent"
+
+    #not sure if we need these
+    COMPUTE = "compute"
+    NETWORK = "network"
+    DATABASE = "database"
     CPU = "cpu"
     MEMORY = "memory"
     STORAGE = "storage"
     API = "api"
     MODEL = "model"
-    AGENT = "agent"
-    COMPUTE = "compute"
-    NETWORK = "network"
-    DATABASE = "database"
     CUSTOM = "custom"
 
 class ResourceStatus(str, Enum):
@@ -21,27 +23,3 @@ class ResourceStatus(str, Enum):
     MAINTENANCE = "maintenance"
     ERROR = "error"
     UNAVAILABLE = "unavailable"
-
-class TaskStatus(str, Enum):
-    """Task status enumeration."""
-    PENDING = "pending"
-    IN_PROGRESS = "in_progress"
-    COMPLETED = "completed"
-    FAILED = "failed"
-    BLOCKED = "blocked"
-    CANCELLED = "cancelled"
-
-class TaskPriority(str, Enum):
-    """Task priority enumeration."""
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-    CRITICAL = "critical"
-    UKNOWN = "unknown"
-
-class BusinessImpact(str, Enum):
-    """Business impact enumeration."""
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-    CRITICAL = "critical"

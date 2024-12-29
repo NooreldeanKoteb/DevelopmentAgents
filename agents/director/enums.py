@@ -7,16 +7,20 @@ class TaskStatus(str, Enum):
     FAILED = "failed"
     PRIORITY_ADJUSTMENT = "priority_adjustment"
 
-class Priority(Enum):
-    CRITICAL = "critical"
-    HIGH = "high"
-    MEDIUM = "medium"
+class TaskPriority(str, Enum):
+    """Task priority enumeration."""
     LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+    UKNOWN = "unknown"
 
 class BusinessImpact(str, Enum):
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
+    CRITICAL = "critical"
+    UNKNOWN = "unknown"
 
 class ActionType(str, Enum):
     TASK_CREATION = "task_creation"

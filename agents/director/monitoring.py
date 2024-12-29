@@ -4,8 +4,7 @@ from datetime import datetime
 import logging
 from contextlib import contextmanager
 import time
-from core.schemas.enums import TaskStatus
-
+from .enums import TaskStatus
 __all__ = ['ProjectMetrics', 'TaskMetrics', 'ResourceMetrics', 'setup_monitoring']
 
 class ProjectMetrics:

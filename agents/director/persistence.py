@@ -8,13 +8,11 @@ from pydantic import BaseModel
 
 from core.schemas.enums import (
     ResourceType,
-    ResourceStatus,
-    TaskStatus,
-    TaskPriority,
-    BusinessImpact
+    ResourceStatus
 )
 from core.schemas.resource import ResourceSchema
-from core.schemas.task import TaskSchema
+from .enums import TaskStatus, TaskPriority, BusinessImpact
+from .models import TaskSchema
 
 class PersistenceManager:
     def __init__(self, redis_client: Redis = None, redis_url: str = None):

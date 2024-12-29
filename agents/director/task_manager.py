@@ -1,8 +1,9 @@
 from typing import Dict, Any, List, Optional
 from datetime import datetime
-from core.schemas import TaskSchema, TaskStatus, TaskPriority, BusinessImpact
 from agents.director.persistence import PersistenceManager
+from .models import TaskSchema
 from .errors import TaskManagementError
+from .enums import TaskStatus, TaskPriority, BusinessImpact
 
 class TaskManager:
     def __init__(self, persistence: PersistenceManager):
@@ -17,8 +18,8 @@ class TaskManager:
         """Add a new task to the system."""
         task = TaskSchema(
             **task_data,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            created_at=datetime.now(),
+            updated_at=datetime.now()
         )
         await self.persistence.save_task(task.id, task.model_dump())
         return task
@@ -126,9 +127,6 @@ class TaskManager:
                         description=task_spec["description"],
                         status=TaskStatus.PENDING,
                         priority=self._determine_priority(task_spec),
-                        business_impact=business_impact,
-                        dependencies=task_spec.get("dependencies", []),
-                        estimated_duration=task_spec["estimated_duration"],
                         phase=phase["name"]
                     )
                     tasks.append(task)
@@ -168,8 +166,6 @@ class TaskManager:
                             description=task_spec["description"],
                             status=TaskStatus.PENDING,
                             priority=self._determine_priority(task_spec),
-                            dependencies=task_spec.get("dependencies", []),
-                            estimated_duration=task_spec["estimated_duration"],
                             phase=phase["name"]
                         )
                         

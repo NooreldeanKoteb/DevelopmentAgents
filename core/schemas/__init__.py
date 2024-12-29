@@ -5,13 +5,6 @@ from .base import (
     ErrorSchema
 )
 
-from .task import (
-    TaskSchema,
-    TaskStatus,
-    TaskPriority,
-    BusinessImpact
-)
-
 from .resources import (
     ResourceSchema,
     ResourceType,
@@ -32,12 +25,6 @@ __all__ = [
     'TimestampedSchema',
     'MetadataSchema',
     'ErrorSchema',
-    
-    # Task schemas and enums
-    'TaskSchema',
-    'TaskStatus',
-    'TaskPriority',
-    'BusinessImpact',
     
     # Resource schemas and enums
     'ResourceSchema',

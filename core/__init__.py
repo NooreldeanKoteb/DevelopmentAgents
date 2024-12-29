@@ -1,7 +1,7 @@
 from .config import Settings, get_settings
 from .messaging import Message, MessageBroker
 from .openai import OpenAIClient
-from .schemas import (TaskSchema, ResourceSchema, TaskStatus, ResourceType)
+from .schemas import (ResourceSchema, ResourceType)
 from .monitoring.metrics import CoreMetrics
 
 __all__ = [
@@ -17,7 +17,6 @@ __all__ = [
     'OpenAIClient',
     
     # Schemas
-    'TaskSchema',
     'ResourceSchema'
     'ResourceType'
 

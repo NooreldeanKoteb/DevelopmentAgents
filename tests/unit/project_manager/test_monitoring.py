@@ -6,14 +6,13 @@ from agents.director.monitoring import (
     ResourceMetrics,
     setup_monitoring
 )
-from core.schemas import TaskSchema, ResourceSchema
+from core.schemas import ResourceSchema
 from core.schemas.enums import (
-    TaskStatus,
-    TaskPriority,
-    BusinessImpact,
     ResourceType,
     ResourceStatus
 )
+from agents.director.enums import TaskStatus, TaskPriority, BusinessImpact
+from agents.director.models import TaskSchema
 
 @pytest.fixture(autouse=True)
 def clear_prometheus_registry():
@@ -46,9 +45,6 @@ async def test_task_metrics_tracking(task_metrics):
         description="Test Description",
         status=TaskStatus.PENDING,
         priority=TaskPriority.HIGH,
-        business_impact=BusinessImpact.HIGH,
-        estimated_duration=2.0,
-        dependencies=[]
     )
     
     # Test task creation

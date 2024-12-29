@@ -1,10 +1,6 @@
 import pytest
-from core.schemas.enums import (
-    TaskStatus,
-    TaskPriority,
-    BusinessImpact
-)
-from core.schemas import TaskSchema
+from agents.director.models import TaskSchema
+from agents.director.enums import TaskStatus, TaskPriority, BusinessImpact
 from agents.director.resource_manager import ResourceManager
 
 class TestEndToEnd:
@@ -20,10 +16,7 @@ class TestEndToEnd:
                 description="Task 1 description",
                 status=TaskStatus.PENDING,
                 priority=TaskPriority.HIGH,
-                business_impact=BusinessImpact.HIGH,
-                estimated_duration="2.0",
-                phase="phase-1",
-                dependencies=[]
+                phase="phase-1"
             ),
             TaskSchema(
                 id="task-2",
@@ -31,10 +24,7 @@ class TestEndToEnd:
                 description="Task 2 description",
                 status=TaskStatus.PENDING,
                 priority=TaskPriority.MEDIUM,
-                business_impact=BusinessImpact.MEDIUM,
-                estimated_duration="3.0",
-                phase="phase-1",
-                dependencies=["task-1"]
+                phase="phase-1"
             )
         ]
         

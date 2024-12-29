@@ -7,7 +7,7 @@ import json
 from agents.base import BaseAgent, AgentError
 from agents.base.message import Message as BaseMessage  # Import base Message
 from core.messaging.message import Message as CoreMessage  # Import core Message for pub/sub
-from core.schemas import TaskSchema, TaskStatus, TaskPriority
+from .enums import TaskStatus, TaskPriority, BusinessImpact
 from .planner import ProjectPlanner
 from .task_manager import TaskManager
 from .resource_manager import ResourceManager

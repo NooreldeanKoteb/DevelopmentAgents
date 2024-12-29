@@ -1,7 +1,19 @@
+from datetime import datetime
 from enum import Enum, auto
 from pydantic import Field
 from core.schemas.base import TimestampedSchema, MetadataSchema
 from typing import List, Dict, Optional
+
+class AgentStatus(str, Enum):
+    IDLE = "idle"
+    BUSY = "busy"
+    ERROR = "error"
+    OFFLINE = "offline"
+    STARTING = "starting"
+    STOPPING = "stopping"
+    SHUTTING_DOWN = "shutting_down"
+    RESTARTING = "restarting"
+    RECOVERING = "recovering"
 
 class AgentType(str, Enum):
     STRATEGIST = "strategist" # previous Product Owner
@@ -25,6 +37,16 @@ class AgentType(str, Enum):
     ACCESSIBILITY_AGENT = "accessibility_agent"
     LOCALIZATION_AGENT = "localization_agent"
     
+class AgentSchema(TimestampedSchema, MetadataSchema):
+    """Base schema for agent data."""
+    id: str
+    type: AgentType
+    name: Optional[str] = None
+    status: AgentStatus = AgentStatus.OFFLINE
+    capabilities: Optional[List[str]] = None
+    current_task: Optional[str] = None
+    created_at: Optional[datetime] = None
+    last_updated: Optional[datetime] = None
 
 class TaskType(Enum):
     # Strategist Tasks
@@ -116,22 +138,3 @@ class TaskType(Enum):
     # Placeholder
     UNKNOWN = "unknown"
 
-
-
-
-class AgentStatus(str, Enum):
-    IDLE = "idle"
-    BUSY = "busy"
-    ERROR = "error"
-    OFFLINE = "offline"
-
-
-class AgentSchema(TimestampedSchema, MetadataSchema):
-    """Base schema for agent data."""
-    id: str
-    name: str
-    type: AgentType
-    status: AgentStatus = AgentStatus.OFFLINE
-    capabilities: List[str] = []
-    current_task: Optional[str] = None
-    performance_metrics: Dict[str, float] = Field(default_factory=dict) 

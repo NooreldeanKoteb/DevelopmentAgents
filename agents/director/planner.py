@@ -7,8 +7,9 @@ import json
 from openai import OpenAIError
 
 from core.openai import OpenAIClient
-from core.schemas import TaskSchema, TaskStatus, TaskPriority
+from core.schemas import TaskSchema
 from .errors import PlanningError
+from .enums import TaskStatus, TaskPriority
 
 # Use TYPE_CHECKING for imports only needed for type hints
 if TYPE_CHECKING:

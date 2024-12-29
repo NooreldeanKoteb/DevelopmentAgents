@@ -52,17 +52,7 @@ class MessageSchema(BaseSchema):
 
 Defines task-related data structures.
 
-```python
-class TaskSchema(BaseSchema):
-    name: str
-    description: str
-    status: TaskStatus
-    priority: TaskPriority
-    assigned_to: Optional[str]
-    deadline: Optional[datetime]
-    dependencies: List[str] = Field(default_factory=list)
-    progress: float = Field(ge=0, le=100, default=0)
-```
+Todo: fill in
 
 ## Common Enums
 

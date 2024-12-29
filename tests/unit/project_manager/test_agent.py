@@ -3,8 +3,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from agents.director.agent import DirectorAgent
 from agents.base.message import Message as BaseMessage
 from core.messaging.message import Message as CoreMessage
-from core.schemas.enums import TaskStatus, ResourceStatus, TaskPriority
-from core.schemas import TaskSchema, ResourceSchema
+from core.schemas.enums import ResourceStatus
+from core.schemas import ResourceSchema
+from agents.director.enums import TaskStatus, TaskPriority
+from agents.director.models import TaskSchema
 from agents.base.enums import AgentType
 import json
 

@@ -7,13 +7,11 @@ from agents.director.persistence import PersistenceManager
 from core.schemas.enums import (
     ResourceType,
     ResourceStatus,
-    TaskStatus,
-    TaskPriority,
-    BusinessImpact
 )
+from agents.director.enums import TaskStatus, TaskPriority, BusinessImpact
 
 # Import schemas
-from core.schemas.task import TaskSchema
+from agents.director.models import TaskSchema   
 
 @pytest.fixture
 async def persistence_manager():

@@ -16,7 +16,6 @@ def test_agent_schema():
     assert agent.status == AgentStatus.IDLE
     assert agent.capabilities == []
     assert agent.current_task is None
-    assert agent.performance_metrics == {}
 
     # Test full agent configuration
     agent = AgentSchema(
