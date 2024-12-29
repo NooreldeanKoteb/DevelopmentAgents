@@ -14,7 +14,7 @@ from redis import Redis
 from core.openai import OpenAIClient
 from agents.base.enums import AgentType
 from core.schemas.enums import Status
-from core.messaging.schemas import Message
+from core.messaging.message import Message
 
 class DirectorAgent(BaseAgent):
     """Agent responsible for managing project resources and tasks."""

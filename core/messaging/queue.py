@@ -1,10 +1,10 @@
 from typing import List, Optional
 from datetime import datetime, timedelta
 import redis.asyncio as redis
-from .schemas import Message, MessageStatus
+from .message import Message
 from core.config import get_settings
 import asyncio
-from core.schemas.enums import Priority
+from core.schemas.enums import Priority, MessageStatus
 
 class QueueManager:
     """Manages message queues and their states."""

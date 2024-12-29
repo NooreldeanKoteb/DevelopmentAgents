@@ -3,10 +3,11 @@ import asyncio
 from datetime import datetime
 from typing import Dict, Any
 from agents.base.base_agent import BaseAgent
-from agents.base.enums import AgentType, MessageType
-from agents.base.schemas import MessageSchema, MessageType
+from agents.base.enums import AgentType
 from core.schemas.enums import Status, Priority, MessageStatus
 from core.schemas.base import BaseSchema
+from core.messaging.message import Message
+
 @pytest.fixture
 async def test_agent(redis_client):
     """Fixture to provide a test agent instance."""

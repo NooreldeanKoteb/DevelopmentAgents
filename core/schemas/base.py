@@ -2,10 +2,11 @@
 from datetime import datetime
 from typing import Dict, Any, Optional
 from pydantic import BaseModel, Field, ConfigDict
+from uuid import uuid4
 
 class BaseSchema(BaseModel):
     """Base schema with common functionality."""
-    id: str = Field(..., description="Unique identifier")
+    id: str = Field(default_factory=lambda: str(uuid4()), description="The unique identifier for the message")
 
 class TimestampedSchema(BaseSchema):
     """Schema with timestamp fields."""

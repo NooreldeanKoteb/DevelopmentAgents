@@ -1,7 +1,7 @@
 import re
 from typing import Dict, Optional
 from agents.director.enums import ActionType
-from core.messaging.schemas import Message
+from core.messaging.message import Message
 class ActionAnalyzer:
     async def determine_action_type(self, message: Message) -> str:
         """Determine the type of action from a message."""
