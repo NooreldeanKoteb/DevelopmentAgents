@@ -7,14 +7,15 @@ from agents.base.enums import AgentType
 from core.schemas.enums import Status, Priority, MessageStatus
 from core.schemas.base import BaseSchema
 from core.messaging.message import Message
-
+from core.messaging.queue import QueueManager
+from core.messaging.message import MessageType
 @pytest.fixture
 async def test_agent(redis_client):
     """Fixture to provide a test agent instance."""
     class TestAgent(BaseAgent):
         agent_type = AgentType.DIRECTOR
 
-        async def process_message(self, message: MessageSchema) -> Dict[str, Any]:
+        async def process_message(self, message: Message) -> Dict[str, Any]:
             if not message.recipient:
                 raise ValueError("Message must have a recipient")
             return {"status": "processed", "message_id": message.id}
@@ -27,7 +28,7 @@ async def test_agent(redis_client):
         async def handle_error(self, error: Exception) -> Dict[str, Any]:
             return {"status": "error_handled", "error": str(error)}
 
-        async def _handle_message_type(self, message: MessageSchema) -> Dict[str, Any]:
+        async def _handle_message_type(self, message: Message) -> Dict[str, Any]:
             return {"status": "handled", "message_id": message.id}
 
         def get_metadata(self) -> Dict[str, Any]:
@@ -54,7 +55,7 @@ async def test_agent(redis_client):
 @pytest.fixture
 def test_message():
     """Fixture to provide a test message."""
-    return MessageSchema(
+    return Message(
         type=MessageType.TASK_CREATION,
         status=MessageStatus.PENDING,
         sender="test-sender",
@@ -105,7 +106,7 @@ async def test_handle_error(test_agent):
 @pytest.mark.asyncio
 async def test_message_validation(test_agent):
     """Test message validation."""
-    invalid_message = MessageSchema(
+    invalid_message = Message(
         type=MessageType.TASK_CREATION,
         status=MessageStatus.PENDING,
         sender="test-sender",

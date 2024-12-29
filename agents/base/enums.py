@@ -4,6 +4,13 @@ from pydantic import Field
 from core.schemas.base import TimestampedSchema, MetadataSchema
 from typing import List, Dict, Optional
 
+class AgentMode(str, Enum):
+    DEVELOPMENT = "development"
+    PRODUCTION = "production"
+    DEBUG = "debug"
+    MAINTENANCE = "maintenance"
+    LEARNING = "learning"
+
 class AgentStatus(str, Enum):
     IDLE = "idle"
     BUSY = "busy"
@@ -14,6 +21,7 @@ class AgentStatus(str, Enum):
     SHUTTING_DOWN = "shutting_down"
     RESTARTING = "restarting"
     RECOVERING = "recovering"
+    PAUSED = "paused"
 
 class AgentType(str, Enum):
     STRATEGIST = "strategist" # previous Product Owner
@@ -36,17 +44,7 @@ class AgentType(str, Enum):
     ETHICS_AGENT = "ethics_agent"
     ACCESSIBILITY_AGENT = "accessibility_agent"
     LOCALIZATION_AGENT = "localization_agent"
-    
-class AgentSchema(TimestampedSchema, MetadataSchema):
-    """Base schema for agent data."""
-    id: str
-    type: AgentType
-    name: Optional[str] = None
-    status: AgentStatus = AgentStatus.OFFLINE
-    capabilities: Optional[List[str]] = None
-    current_task: Optional[str] = None
-    created_at: Optional[datetime] = None
-    last_updated: Optional[datetime] = None
+
 
 class TaskType(Enum):
     # Strategist Tasks

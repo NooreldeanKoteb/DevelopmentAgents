@@ -1,8 +1,7 @@
 import pytest
 from agents.director.action_analyzer import ActionAnalyzer
 from agents.director.enums import ActionType
-from agents.base.schemas import Message
-
+from core.messaging.message import Message
 @pytest.mark.asyncio
 async def test_determine_action_type():
     """Test action type determination."""

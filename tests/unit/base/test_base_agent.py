@@ -5,8 +5,8 @@ from agents.base.enums import AgentType
 from typing import Dict, Any
 from datetime import datetime
 import uuid
-from core.messaging.schemas import Message
-from core.messaging.enums import MessageType
+from core.messaging.message import Message
+from core.messaging.message import MessageType
 
 @pytest.fixture
 def mock_metrics():

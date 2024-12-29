@@ -1,8 +1,7 @@
 import pytest
 from agents.director.action_analyzer import ActionAnalyzer
 from agents.director.enums import ActionType
-from agents.base.schemas import Message
-
+from core.messaging.message import Message
 @pytest.mark.asyncio
 @pytest.mark.parametrize("content,expected_type", [
     ("create new task", "task_creation"),

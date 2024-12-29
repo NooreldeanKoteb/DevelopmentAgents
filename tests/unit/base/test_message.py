@@ -1,6 +1,6 @@
 import pytest
 from datetime import datetime
-from agents.base.schemas import Message
+from core.messaging.message import Message
 
 def test_message_creation():
     """Test basic message creation."""

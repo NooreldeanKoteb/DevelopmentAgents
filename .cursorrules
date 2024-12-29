@@ -30,7 +30,6 @@ project_structure:
       - memory.py             # Memory management system
       - message.py            # Message handling system
       - errors.py            # Custom exceptions
-      - context.py           # Context management
     - director/
       - __init__.py
       - agent.py             # Project management implementation
@@ -189,7 +188,7 @@ agent_rules:
       - test_execution
       - coverage_analysis
       - performance_testing
-      
+
   curator:
     responsibilities:
       - code_documentation

@@ -2,11 +2,12 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from datetime import datetime
 from agents.director.agent import DirectorAgent
-from agents.base.schemas import Message
 from agents.director.planner import ProjectPlanner
 from agents.director.enums import BusinessImpact
 from agents.director.schemas import TaskSchema
 from core.schemas.enums import Status, Priority
+from core.messaging.message import Message
+
 @pytest.fixture
 def sample_message():
     """Provide a sample message for testing."""
