@@ -1,9 +1,10 @@
-from pydantic import BaseModel, Field, validator, ConfigDict, field_serializer, field_validator
+from pydantic import Field, validator, ConfigDict, field_serializer, field_validator
 from datetime import datetime
 from typing import Dict, Optional, List, Any
 from .enums import ResourceType, ResourceStatus
-from core.schemas.base import BaseSchema, DescriptiveSchema, MetadataSchema, TimestampedSchema
-class ResourceSchema(BaseModel, BaseSchema, DescriptiveSchema, MetadataSchema, TimestampedSchema):
+from core.schemas.base import DescriptiveSchema, MetadataSchema, TimestampedSchema
+
+class ResourceSchema(DescriptiveSchema, MetadataSchema, TimestampedSchema):
     model_config = ConfigDict()
 
     type: ResourceType = Field(..., description="Resource type")

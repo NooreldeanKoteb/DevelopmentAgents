@@ -1,11 +1,8 @@
 from typing import Dict, Any, Optional, List
 from datetime import datetime
-import asyncio
-import uuid
 import json
 
 from agents.base import BaseAgent, AgentError  # Import base Message
-from .enums import BusinessImpact
 from .planner import ProjectPlanner
 from .task_manager import TaskManager
 from .resource_manager import ResourceManager
@@ -16,15 +13,13 @@ from agents.base.enums import AgentType
 from core.schemas.enums import Status
 from core.messaging.message import Message
 from agents.base.topic_registry import TopicRegistry
-from core.settings import settings
+from core.config.settings import get_settings
 
 class DirectorAgent(BaseAgent):
     """Agent responsible for managing project resources and tasks."""    
     def __init__(
         self,
         name: str,
-        task_service: TaskManager,
-        resource_service: ResourceManager,
         redis_client: Optional[Redis] = None,
         redis_url: Optional[str] = None
     ):
@@ -39,6 +34,10 @@ class DirectorAgent(BaseAgent):
         self.openai = OpenAIClient()  # Initialize OpenAI client here
         self.system_status = Status.ACTIVE
         self.agent_heartbeats: Dict[str, datetime] = {}  # Track agent heartbeats
+        self.settings = get_settings()
+        self.planner_service = None
+        self.task_service = None
+        self.resource_service = None
 
     async def initialize(self) -> None:
         """Initialize Director components."""
@@ -445,7 +444,7 @@ class DirectorAgent(BaseAgent):
         last_heartbeat = self.agent_heartbeats.get(agent_id)
         if last_heartbeat:
             # Check if heartbeat is too old
-            if (datetime.now() - last_heartbeat).seconds > settings.HEARTBEAT_TIMEOUT:
+            if (datetime.now() - last_heartbeat).seconds > self.settings.HEARTBEAT_TIMEOUT:
                 await self._handle_agent_status(Message(
                     topic="agent.status",
                     content={

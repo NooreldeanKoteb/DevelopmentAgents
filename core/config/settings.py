@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     
     # Agent Settings
-    HEARTBEAT_TIMEOUT = 180  # Seconds before considering an agent offline
+    HEARTBEAT_TIMEOUT: int = 180  # Seconds before considering an agent offline
 
     # OpenAI
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "dummy-key-for-testing")
@@ -30,7 +30,7 @@ class Settings(BaseSettings):
         raise ValueError("OPENAI_API_KEY environment variable is not set")
     OPENAI_MODEL: str = "gpt-4-turbo-preview"
     TEMPERATURE: float = 0.7
-    MAX_TOKENS: int = 20000
+    MAX_TOKENS: int = 4096
     RATE_LIMIT: int = 50  # Requests per minute
     
     # Storage
@@ -48,6 +48,8 @@ class Settings(BaseSettings):
         "default_model": "gpt-4-turbo-preview",
         "max_retries": 3,
         "timeout": 30,
+        "max_tokens": MAX_TOKENS,
+        "temperature": 0.7,
         "rate_limits": {
             "requests_per_minute": 60,
             "tokens_per_minute": 90000

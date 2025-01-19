@@ -16,7 +16,6 @@ class BaseAgent(ABC):
     
     def __init__(
         self,
-        agent_id: str,
         name: str,
         agent_type: AgentType,
         capabilities: Optional[List[str]] = None,

@@ -14,18 +14,16 @@ class TimestampedSchema(BaseSchema):
     updated_at: Optional[datetime] = Field(default_factory=datetime.now, description="last update timestamp")
     completed_at: Optional[datetime] = Field(default=None, description="completion timestamp")
 
-
 class MetadataSchema(BaseSchema):
     """Schema with metadata field."""
     metadata: Dict = Field(default_factory=dict, description="Additional metadata")
-
 
 class DescriptiveSchema(BaseSchema):
     """Schema with metadata field."""
     name: str = Field(..., description="Name")
     description: str = Field(..., description="Description")
 
-class ErrorSchema(BaseModel):
+class ErrorSchema(BaseSchema):
     """Schema for error responses."""
     code: str
     message: str

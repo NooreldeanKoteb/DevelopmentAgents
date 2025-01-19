@@ -1,0 +1,151 @@
+Here's a summary of the Director agent's components:
+
+1. **agent.py**
+- Main DirectorAgent class inheriting from BaseLLMAgent
+- Handles project management and coordination
+- Processes messages for project/task updates
+- Manages project state and resources
+
+2. **schemas.py**
+- Defines data structures using Pydantic:
+  - `AgentTaskRequestSchema`: For agent task assignments
+  - `TaskSchema`: Task information and metadata
+  - `ProjectPhase`: Project phase organization
+  - `ProjectSchema`: Overall project structure
+- Includes serialization/deserialization logic
+
+3. **planner.py**
+- Handles project planning and organization
+- Creates and updates project plans using OpenAI
+- Generates timelines and milestones
+- Manages task dependencies and phases
+
+4. **task_manager.py**
+- Manages task lifecycle
+- Handles task creation, updates, and deletion
+- Tracks task status and dependencies
+- Integrates with persistence layer
+
+5. **persistence.py**
+- Handles data storage using Redis
+- Manages task and resource persistence
+- Handles serialization/deserialization
+- Manages relationships between tasks and resources
+
+6. **monitoring.py**
+- Implements metrics tracking using Prometheus
+- Tracks project, task, and resource metrics
+- Monitors completion times and status changes
+- Provides resource utilization tracking
+
+7. **priority.py**
+- Calculates task priorities
+- Considers deadlines, dependencies, and business impact
+- Provides priority scoring system
+- Helps with task scheduling
+
+8. **action_analyzer.py**
+- Analyzes incoming messages
+- Determines action types
+- Helps route messages to appropriate handlers
+
+9. **errors.py**
+- Defines custom exceptions for the Director module
+- Provides specific error types for different scenarios
+- Includes detailed error information
+
+10. **enums.py**
+- Defines enumerations for:
+  - BusinessImpact
+  - ActionType
+  - ProjectStatus
+
+The Director agent is designed to be the orchestrator of the system, managing projects, tasks, and resources while coordinating with other agents. It uses Redis for persistence, Prometheus for monitoring, and OpenAI for intelligent decision-making.
+
+
+
+
+
+Developer
+Layout
+
+    Preparation
+        Understand requirements and design specifications.
+        Set up the development environment.
+        Identify and gather dependencies (libraries, APIs, tools).
+
+    Module Creation
+        Create the file structure for the project or module.
+        Add boilerplate code as necessary.
+        Document initial purpose and assumptions.
+
+    Task Management
+        Break down tasks into granular, actionable items.
+        Assign tasks to team members.
+        Prioritize tasks based on dependencies.
+
+    Development
+        Write code for individual components/modules.
+        Implement core logic and algorithms.
+        Write TODO comments for incomplete or future enhancements.
+
+    Code Reviews
+        Conduct peer reviews of code for adherence to standards and quality.
+        Address feedback and make revisions.
+
+    Integration
+        Integrate modules and components.
+        Handle inter-module communication and data flow.
+
+    Testing
+        Write and execute unit tests for each module.
+        Perform integration testing to ensure modules work together.
+        Fix identified bugs and retest.
+
+    Documentation
+        Add inline comments for clarity.
+        Update technical documentation (e.g., API references, README).
+        Record key decisions or deviations from the initial design.
+
+    Iteration
+        Refactor code to improve performance or maintainability.
+        Address technical debt as time permits.
+
+    Finalization
+        Ensure code is production-ready.
+        Merge into the main branch and prepare for deployment.
+
+Questions for the Implementation Phase
+
+    Preparation
+        Are all dependencies and tools accounted for and installed?
+        Does everyone on the team understand the requirements and design?
+
+    Task Management
+        Are tasks sufficiently broken down into actionable steps?
+        Are dependencies between tasks clear and accounted for?
+
+    Development
+        Is the code following the agreed-upon standards (naming, formatting)?
+        Are error handling and edge cases being addressed?
+        Are there TODOs left in the code for later work?
+
+    Code Reviews
+        Does the code meet performance and security requirements?
+        Are there any violations of coding standards or best practices?
+
+    Testing
+        Have all unit tests passed?
+        Have any bugs been introduced during integration?
+
+    Documentation
+        Are inline comments meaningful and concise?
+        Is the documentation updated to reflect the latest code?
+
+    Iteration
+        Can the code be further optimized or simplified?
+        Are there any known areas of technical debt?
+
+    Finalization
+        Does the code meet the definition of done?
+        Is the code ready for deployment without any blockers?

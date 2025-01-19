@@ -30,7 +30,16 @@ class Status(str, Enum):
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
     FAILED = "failed"
-    PRIORITY_ADJUSTMENT = "priority_adjustment"
+    PRIORITY_ADJUSTMENT = "priority_adjustment",
+    ACTIVE = "active",
+    CANCELLED = "cancelled",
+    INITIALIZING = "initializing",
+    TERMINATING = "terminating",
+    TERMINATED = "terminated",
+    RESTARTING = "restarting",
+    RESTARTED = "restarted",
+    UPGRADING = "upgrading",
+    UPGRADED = "upgraded",
 
 class Priority(str, Enum):
     """Priority enumeration."""

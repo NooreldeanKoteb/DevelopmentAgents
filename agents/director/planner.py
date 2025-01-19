@@ -7,7 +7,7 @@ import json
 from openai import OpenAIError
 
 from core.openai import OpenAIClient
-from core.schemas import TaskSchema
+from .schemas import TaskSchema
 from .errors import PlanningError
 
 # Use TYPE_CHECKING for imports only needed for type hints
@@ -28,7 +28,7 @@ class ProjectPlanner:
         
     def _load_prompts(self) -> Dict[str, Any]:
         """Load prompts from YAML file."""
-        prompt_path = Path("prompts/Director/planning.yaml")
+        prompt_path = Path("prompts/director/planning.yaml")
         try:
             with open(prompt_path) as f:
                 return yaml.safe_load(f)
@@ -84,7 +84,6 @@ class ProjectPlanner:
                 **current_plan,
                 "phases": updated_plan["phases"],
                 "dependencies": updated_plan["dependencies"],
-                "estimated_duration": updated_plan["estimated_duration"],
                 "critical_path": updated_plan["critical_path"],
                 "impact_assessment": updated_plan["impact_assessment"],
                 "updated_at": datetime.now().isoformat(),
@@ -105,7 +104,7 @@ class ProjectPlanner:
                 plan_data = json.loads(response)
                 
             # Validate required fields
-            required_fields = {"phases", "dependencies", "estimated_duration", "critical_path", "risk_assessment"}
+            required_fields = {"phases", "dependencies", "critical_path", "risk_assessment"}
             missing_fields = required_fields - set(plan_data.keys())
             
             if missing_fields:
@@ -118,8 +117,11 @@ class ProjectPlanner:
                     
                 for task in phase["tasks"]:
                     required_task_fields = {
-                        "name", "description", "estimated_duration",
-                        "dependencies", "required_skills", "resources"
+                        "name", "description", "implementation_steps",
+                        "dependencies", "priority",
+                        "critical", "risk_level", "requirements",
+                        "completion_criteria", "research_required",
+                        "required_specializations"
                     }
                     missing_task_fields = required_task_fields - set(task.keys())
                     

@@ -8,8 +8,7 @@ from agents.base.enums import AgentType
 from core.messaging import Message
 from agents.base.enums import TaskType
 
-@dataclass
-class TopicSubscription:
+class TopicSubscription(BaseModel):
     """Defines a subscription topic and its associated task."""
     topic: str = Field(default="", description="The topic to subscribe to")  
     task_type: TaskType = Field(default=TaskType.UNKNOWN, description="The task type associated with the topic")
@@ -43,7 +42,7 @@ class HistoryEntry(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.now, description="Timestamp of the message")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="Metadata of the message")
 
-class AgentSchema(BaseSchema, TimestampedSchema, MetadataSchema):
+class AgentSchema(TimestampedSchema, MetadataSchema):
     """Base schema for agent data."""
     type: AgentType = Field(default=None, description="Type of the agent")
     name: Optional[str] = Field(default=None, description="Name of the agent")

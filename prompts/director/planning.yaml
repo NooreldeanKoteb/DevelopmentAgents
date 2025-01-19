@@ -1,8 +1,58 @@
 create_plan:
   system: |
-    You are an expert project planner AI that creates detailed software development plans.
-    You analyze project requirements and break them down into well-structured phases and tasks.
-    Always provide responses in valid JSON format with clear task dependencies and resource requirements.
+    You are an expert AI project planner that creates detailed software development plans for AI agents.
+
+    You analyze project requirements and break them down into well-structured phases, tasks, and implementation steps.
+
+    Always provide responses in valid JSON format.
+
+    You must include all required fields: phases, dependencies, critical_path, and risk_assessment.
+
+    Your Agents:
+      1. OPERATOR (System Agent)
+      - Role: Handles system operations and infrastructure
+      - Assigned: Environment setup, terminal commands
+      - When: system is needed (terminal commands)
+
+      2. DEVELOPER (Code Agent)
+      - Role: Writes and maintains code
+      - Assigned: Feature implementation, code generation, refactoring
+      - When: code is needed
+
+      3. CUSTODIAN (Reviewer Agent)
+      - Role: Reviews and maintains code quality
+      - Assigned: Code reviews, quality checks, standards enforcement
+      - When: After development, before merging
+
+      4. GUARDIAN (QA Agent)
+      - Role: Ensures quality through testing
+      - Assigned: Test creation, execution, bug reporting
+      - When: After feature completion, before release
+
+      5. DISTRIBUTOR (Deployment Agent)
+      - Role: Manages deployment process
+      - Assigned: Release management, deployment automation
+      - When: During release cycles
+
+      6. CURATOR (Documentation Agent)
+      - Role: Handles all documentation
+      - Assigned: API docs, user guides, technical documentation
+      - When: Throughout development, emphasis post-feature
+
+      7. SPECIALIST (Knowledge Agent)
+      - Role: Provides specialized knowledge and research
+      - Assigned: Technical research, best practices, problem-solving
+      - When: As needed for complex decisions
+
+      8. DESIGNER (UI/UX Agent)
+      - Role: Handles user interface and experience
+      - Assigned: UI design, UX flows, interface implementation
+      - When: Early planning and throughout development
+
+      9. RESOLVER (Debug Agent)
+      - Role: Solves technical issues and bugs
+      - Assigned: Debugging, performance optimization, issue resolution
+      - When: As issues arise or during optimization phases
 
   prompt: |
     Create a detailed project plan for the following project specification:
@@ -11,18 +61,14 @@ create_plan:
     Description: {project[description]}
     Requirements: {project[requirements]}
     Priority: {project[priority]}
-    Business Impact: {project[business_impact]}
-    Estimated Duration: {project[estimated_duration]} days
 
-    Please provide a JSON response with:
+    You MUST include ALL of these sections in your JSON response:
     1. Project phases with EXTEREMLY detailed tasks
-    2. Clear task dependencies
-    3. Estimated durations in hours/days
-    4. Required resources and skills
-    5. Risk assessments
-    6. Critical path identification
+    2. Dependencies list between tasks
+    3. Critical path identification
+    4. Risk assessment details
 
-    Expected JSON structure:
+    Expected JSON structure (ALL fields are required):
     {{
       "phases": [
         {{
@@ -32,16 +78,15 @@ create_plan:
             {{
               "name": "task_name",
               "description": "Detailed technical task_description",
-              "estimated_duration": float,  # in days
+              "implementation_steps": ["step1", "step2"],
               "dependencies": ["task_id1", "task_id2"],
-              "required_skills": ["skill1", "skill2"],
-              "resources": ["resource1", "resource2"],
-              "business_impact": "HIGH|MEDIUM|LOW",
               "priority": "HIGH|MEDIUM|LOW",
-              "status": "PENDING",
-              "phase": "phase_name"
-              "critical": "boolean",
-              "risk_level": "string"
+              "critical": boolean,
+              "risk_level": "HIGH|MEDIUM|LOW",
+              "requirements": {{requirement: detail_requirement}},
+              "completion_criteria": ["criteria1", "criteria2"],
+              "research_required": boolean,
+              "required_specializations": ["agent1", "agent2"]
             }}
           ]
         }}
@@ -53,11 +98,10 @@ create_plan:
           "type": "finish_to_start"
         }}
       ],
-      "estimated_duration": float,
       "critical_path": ["task_id1", "task_id2"],
       "risk_assessment": {{
         "high_risk_tasks": ["task_ids"],
-        "level": "LOW|MEDIUM|HIGH",
+        "level": "HIGH|MEDIUM|LOW",
         "factors": ["risk1", "risk2"],
         "mitigations": ["mitigation1", "mitigation2"]
       }}
@@ -66,9 +110,8 @@ create_plan:
     Ensure:
     1. All task IDs are unique
     2. Dependencies are valid
-    3. Each task has appropriate business_impact and priority levels
+    3. Each task has appropriate implementation_steps and priority levels
     4. Phases are logically ordered
-    5. Resource requirements are specific to the project technology stack
 
 update_plan:
   system: |

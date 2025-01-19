@@ -1,6 +1,7 @@
 import asyncio
 import redis.asyncio as redis
 from datetime import datetime
+import os
 from prometheus_client import REGISTRY, CollectorRegistry
 from agents.director.agent import DirectorAgent
 from agents.director.task_manager import TaskManager
@@ -10,7 +11,13 @@ from agents.director.persistence import PersistenceManager
 from core.messaging.message import Message
 from agents.director.enums import BusinessImpact
 from core.monitoring.metrics import CoreMetrics
-from core.schemas.enums import Priority
+from core.schemas.enums import Status, Priority
+from agents.base.enums import AgentType, TaskType
+from core.openai import OpenAIClient
+
+# Configuration
+REDIS_URL = "redis://localhost:6379/0"
+OPENAI_API_KEY = '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'  # Get from environment variable
 
 def clear_metrics():
     """Clear all prometheus metrics."""
@@ -38,9 +45,9 @@ async def cleanup_redis(redis_client):
     """Properly cleanup Redis connection."""
     try:
         await redis_client.flushdb()
-        await redis_client.aclose()  # Use aclose() instead of close()
-        # Give event loop time to process cleanup
-        await asyncio.sleep(0.1)
+        if hasattr(redis_client, 'connection_pool'):
+            await redis_client.connection_pool.disconnect()
+        await redis_client.aclose()
     except Exception as e:
         print(f"Error during Redis cleanup: {str(e)}")
 
@@ -50,19 +57,19 @@ async def print_project_plan(response):
     print("=" * 50)
     print(response)
     
-    if not response or not response.content:
-        print("\nError: No response or empty content received")
+    if not response or not response.payload:
+        print("\nError: No response or empty payload received")
         return
 
-    content = response.content
-    print("\nResponse Content:")
+    payload = response.payload
+    print("\nResponse Payload:")
     print("=" * 50)
-    print(content)
+    print(payload)
     
     print("\nProject Plan Details:")
     print("=" * 50)
     
-    plan = content.get('plan', {})
+    plan = payload.get('plan', {})
     
     # Print phases and tasks from the plan
     if "phases" in plan:
@@ -77,15 +84,15 @@ async def print_project_plan(response):
                     print("\n  📌 Task Details:")
                     print(f"    Name: {task['name']}")
                     print(f"    Description: {task['description']}")
-                    print(f"    Duration: {task['estimated_duration']} days")
                     print(f"    Priority: {task['priority']}")
-                    print(f"    Business Impact: {task['business_impact']}")
-                    print(f"    Status: {task['status']}")
                     print(f"    Critical: {task.get('critical', 'Not specified')}")
                     print(f"    Risk Level: {task.get('risk_level', 'Not specified')}")
                     print(f"    Dependencies: {', '.join(task['dependencies']) if task['dependencies'] else 'None'}")
-                    print(f"    Required Skills: {', '.join(task['required_skills'])}")
-                    print(f"    Resources: {', '.join(task['resources'])}")
+                    print(f"    Implementation Steps: {', '.join(task['implementation_steps'])}")
+                    print(f"    Completion Criteria: {', '.join(task['completion_criteria'])}")
+                    print(f"    Research Required: {task['research_required']}")
+                    print(f"    Required Specializations: {', '.join(task['required_specializations'])}")
+                    print(f"    Requirements: {task['requirements']}")
 
     # Print dependencies
     if "dependencies" in plan:
@@ -117,38 +124,51 @@ async def print_project_plan(response):
         for strategy in risk['mitigations']:
             print(f"  • {strategy}")
 
-    # Print overall duration
-    if "estimated_duration" in plan:
-        print(f"\n⏱️ Total Estimated Duration: {plan['estimated_duration']} days")
 
     # Print created tasks
-    if "tasks" in content:
+    if "tasks" in payload:
         print("\n📝 Created Tasks:")
         print("=" * 30)
-        for task in content["tasks"]:
+        for task in payload["tasks"]:
             print(f"\nTask ID: {task.id}")
             print(f"Name: {task.name}")
-            print(f"Status: {task.status}")
             print(f"Priority: {task.priority}")
-            print(f"Business Impact: {task.business_impact}")
             print(f"Phase: {task.phase}")
             print(f"Created: {task.created_at}")
 
     # Print allocated resources
-    if "resources" in content:
+    if "resources" in payload:
         print("\n🔧 Allocated Resources:")
         print("=" * 30)
-        for resource_id, resource in content.get("resources", {}).items():
+        for resource_id, resource in payload.get("resources", {}).items():
             print(f"\nResource: {resource_id}")
             print(f"Details: {resource}")
 
+async def get_project_plan(planner: ProjectPlanner, project_spec: dict) -> dict:
+    """Call OpenAI directly through planner to get project plan."""
+    print("\nCalling OpenAI for project planning...")
+    
+    try:
+        # Use the existing create_plan method
+        response = await planner.create_plan(project_spec)
+        
+        print("\nRaw OpenAI Response:")
+        print("=" * 80)
+        print(response)
+        
+        return response
+        
+    except Exception as e:
+        print(f"Error getting project plan from OpenAI: {str(e)}")
+        raise
+
 async def main():
+    redis_client = None
     try:
         clear_metrics()
         redis_client = await setup_redis()
         
         print("\nInitializing services...")
-        # Initialize services with Redis client
         persistence = PersistenceManager(redis_client)
         task_manager = TaskManager(persistence)
         resource_manager = ResourceManager()
@@ -157,86 +177,95 @@ async def main():
         
         print("\nCreating Director agent...")
         agent = DirectorAgent(
-            name="Director",
-            agent_type="director",
-            task_service=task_manager,
-            resource_service=resource_manager,
-            planner_service=None,  # Set to None initially
-            redis_client=redis_client
+            name="director_agent",
+            redis_client=redis_client,
+            redis_url=REDIS_URL  # 
         )
         
-        # Initialize planner with agent reference after agent creation
-        planner = ProjectPlanner(agent=agent)
-        agent.planner_service = planner  # Set planner after initialization
-        
-        # Initialize the agent
         await agent.initialize()
         print("Agent initialized successfully")
 
         try:
             project_spec = {
-                "id": "travel-app-1",  # Add project ID
+                "id": "travel-app-1",
                 "name": "social media travel app",
-                "description": """
-                    Create a social media travel app following features:
-                    - User authentication
-                    - CRUD operations for posts
-                    - Explore new places
-                    - Share your travel experiences
-                    - Follow other users
-                    - Like and comment on posts
-                    - Search for places
-                    - Create a community for travel enthusiasts
-                    """,
+                # "description": """
+                #     Create a social media travel app following features:
+                #     - User authentication
+                #     - CRUD operations for posts
+                #     - Explore new places
+                #     - Share your travel experiences
+                #     - Follow other users
+                #     - Like and comment on posts
+                #     - Search for places
+                #     - Create a community for travel enthusiasts
+                #     """,
+                "description": "Create a workout tracking app",
                 "requirements": {
-                    "language": "node.js",
-                    "framework": "React Native",
-                    "database": "MongoDB",
+                    "language": "python",
+                    "framework": "Flask",
+                    "database": "DynamoDB",
                     "features": [
-                        "authentication",
-                        "crud",
-                        "file_upload",
-                        "rate_limiting",
-                        "documentation",
-                        "explore_new_places",
-                        "share_travel_experiences",
-                        "follow_other_users",
-                        "like_and_comment_on_posts",
-                        "search_for_places",
-                        "create_a_community_for_travel_enthusiasts"
-                    ]
+                        "create workout plan",
+                        "track workout progress",
+                        "create workout log",
+                        "create workout history",
+                        "create workout summary",
+                        "create workout report",
+                        "create workout analysis",
+                        "create workout recommendation",
+                        "keep track of reps, sets, and weights",
+                        "keep track of calories burned",
+                        "keep track of time spent",
+                        "keep track of distance traveled",
+                        "keep track of heart rate",
+                        "keep track of sleep",
+                        "keep track of nutrition",
+                    ],
                 },
-                "priority": Priority.HIGH.value,  # Use .value for enum
-                "business_impact": BusinessImpact.HIGH.value,  # Use .value for enum
-                "estimated_duration": 14.0  # days
+                "priority": Priority.HIGH,
+                "metadata": {},
+                "tags": ["mobile", "social", "travel"]
             }
 
-            print("\nCreating project message...")
-            message = Message(
-                topic="project.new",
-                content=project_spec,
-                sender="test_script"
-            )
-
-            print("\nSending project creation request...")
-            response = await agent.process_message(message)
+            # Get plan directly from OpenAI
+            plan = await get_project_plan(agent.planner_service, project_spec)
             
-            # Use the updated print function
-            await print_project_plan(response)
+            # Print the plan details
+            await print_project_plan(Message(
+                topic="project.plan",
+                sender="planner",
+                code="SUCCESS",
+                message="Project plan generated successfully",
+                recipient="director",
+                type="task_creation",
+                status=Status.COMPLETED,
+                priority=Priority.HIGH,
+                payload={"plan": plan}
+            ))
 
         finally:
-            print("\nCleaning up agent...")
-            await agent.cleanup()
-            print("Agent cleanup complete")
+            try:
+                print("\nCleaning up...")
+                if 'agent' in locals():
+                    print("Cleaning up agent...")
+                    await agent.cleanup()
+                    print("Agent cleanup complete")
 
-            print("\nClosing Redis connection...")
-            await cleanup_redis(redis_client)
-            print("Redis connection closed")
+                if redis_client:
+                    print("\nClosing Redis connection...")
+                    await cleanup_redis(redis_client)
+                    print("Redis connection closed")
+                    
+                    # Add longer delay to ensure connections are closed
+                    await asyncio.sleep(0.5)
+            except Exception as e:
+                print(f"Error during cleanup: {str(e)}")
 
     except Exception as e:
         print(f"\nError occurred: {str(e)}")
         import traceback
-        traceback.print_exc()  # Print full traceback
+        traceback.print_exc()
         raise
 
 if __name__ == "__main__":

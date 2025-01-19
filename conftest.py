@@ -27,7 +27,7 @@ def test_settings():
         OPENAI_API_KEY="dummy-key-for-testing",
         LOG_LEVEL="INFO",
         VECTOR_DB_PATH="./data/vector_store",
-        MAX_TOKENS=2000,
+        MAX_TOKENS=4096,
         RATE_LIMIT=50,
         REDIS_URL="redis://localhost:6379/0",
         PROMETHEUS_PORT=9090

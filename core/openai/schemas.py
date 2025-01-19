@@ -15,7 +15,7 @@ class OpenAIRequest(BaseModel):
     model: str
     prompt: str
     temperature: float = 0.7
-    max_tokens: int = 2000
+    max_tokens: int = 4096
 
     @property
     def cache_key(self) -> str:
@@ -54,3 +54,19 @@ class OpenAIResponse(BaseModel):
         data = super().model_dump(**kwargs)
         data['created_at'] = data['created_at'].isoformat()
         return data
+    
+
+
+class LLMConfig(BaseModel):
+    """Configuration for LLM client."""
+    model: str = "gpt-4-turbo-preview"
+    temperature: float = 0.7
+    max_tokens: Optional[int] = None
+    top_p: float = 1.0
+    frequency_penalty: float = 0.0
+    presence_penalty: float = 0.0
+
+    @classmethod
+    def from_dict(cls, config: Dict[str, Any]) -> 'LLMConfig':
+        """Create an LLMConfig instance from a dictionary."""
+        return cls(**config)

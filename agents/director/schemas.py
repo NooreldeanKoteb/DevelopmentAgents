@@ -50,7 +50,7 @@ class BaseDirectorSchema(BaseModel):
         return json.dumps(self.model_dump(*args, **kwargs))
 
 # todo: Figure out the messaging schema first then build this on top
-class AgentTaskRequestSchema(BaseDirectorSchema, BaseSchema, MetadataSchema, TimestampedSchema):
+class AgentTaskRequestSchema(BaseDirectorSchema, MetadataSchema, TimestampedSchema):
     agent_type: AgentType  # e.g., "code_generator", "reviewer"
     task_type: TaskType # e.g., "code_generation", "review"
     priority: Priority
@@ -81,17 +81,18 @@ class AgentTaskRequestSchema(BaseDirectorSchema, BaseSchema, MetadataSchema, Tim
         """Convert to JSON string."""
         return self.model_dump_json()
 
-class TaskSchema(BaseDirectorSchema, BaseSchema, DescriptiveSchema, MetadataSchema, TimestampedSchema):
+class TaskSchema(BaseDirectorSchema, DescriptiveSchema, MetadataSchema, TimestampedSchema):
     """Schema for task data."""
     phase: Optional[str] = Field(default=None, description="Current phase of the task")
     requirements: Dict = Field(default_factory=dict, description="Task requirements")
+    implementation_steps: List[str] = Field(default=None, description="Implementation steps")
     completion_criteria: List[str] = Field(default_factory=list, description="Completion criteria")
     business_impact: Optional[BusinessImpact] = Field(default=None, description="Business impact of the task")
 
     research_required: bool = Field(default=False, description="Whether research is required for the task")
-    ai_request: AgentTaskRequestSchema = Field(..., description="AI request for the task")
+    agent_request: AgentTaskRequestSchema = Field(..., description="AI request for the task")
     status: Status = Field(default=Status.PENDING, description="Current status of the task")
-    priority: Priority = Field(default_factory=Priority.UKNOWN, description="Priority level of the task")
+    priority: Priority = Field(..., description="Priority level of the task")
     required_specializations: List[str] = Field(default_factory=list, description="Required specializations for the task")
 
     parent_task: Optional[str] = Field(default=None, description="Parent task ID")
@@ -108,7 +109,7 @@ class TaskSchema(BaseDirectorSchema, BaseSchema, DescriptiveSchema, MetadataSche
         """Convert to JSON string."""
         return self.model_dump_json()
     
-class ProjectPhase(BaseDirectorSchema, BaseSchema, DescriptiveSchema):
+class ProjectPhase(BaseDirectorSchema, DescriptiveSchema):
     """Project phase schema."""
     order: int = Field(default=0, description="Order of the phase")
     status: ProjectStatus = Field(default=ProjectStatus.PLANNING, description="Status of the phase")
@@ -117,7 +118,7 @@ class ProjectPhase(BaseDirectorSchema, BaseSchema, DescriptiveSchema):
     preceding_phases: List["ProjectPhase"] = Field(default_factory=list, description="Phases that must be completed before this phase")
     resources: List[ResourceSchema] = Field(default_factory=list, description="Resources allocated to the phase")
 
-class ProjectSchema(BaseDirectorSchema, BaseSchema, DescriptiveSchema, MetadataSchema, TimestampedSchema):
+class ProjectSchema(BaseDirectorSchema, DescriptiveSchema, MetadataSchema, TimestampedSchema):
     """Project schema definition."""
     status: ProjectStatus = ProjectStatus.PLANNING
     phases: List[ProjectPhase] = Field(default_factory=list)

@@ -78,11 +78,6 @@ class TopicRegistry:
         ),
 
         # Developer Topics
-        "developer.code.generate": TopicSubscription(
-            topic="developer.code.generate",
-            task_type=TaskType.DEVELOPER_GENERATION_BACKEND,
-            description="Code generation requests"
-        ),
         "developer.code.refactor": TopicSubscription(
             topic="developer.code.refactor",
             task_type=TaskType.DEVELOPER_REFACTOR,

@@ -1,6 +1,7 @@
 from typing import Dict, List, Any, Optional
 from datetime import datetime
-from core.schemas import ResourceSchema, TaskSchema
+from core.schemas import ResourceSchema
+from .schemas import TaskSchema
 from .errors import ResourceError
 
 class ResourceManager:

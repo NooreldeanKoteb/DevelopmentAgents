@@ -3,9 +3,9 @@ from pydantic import BaseModel, Field, ConfigDict, field_serializer
 from uuid import uuid4
 from typing import Any, Dict, Optional, List
 from core.schemas.enums import Priority, MessageStatus, MessageType
-from core.schemas.base import BaseSchema, TimestampedSchema, ErrorSchema
+from core.schemas.base import TimestampedSchema, ErrorSchema
 
-class BaseMessage(BaseSchema, TimestampedSchema, ErrorSchema):
+class BaseMessage(TimestampedSchema, ErrorSchema):
     """Base message schema for communication."""
     model_config = ConfigDict()
 
@@ -18,7 +18,7 @@ class Message(BaseMessage):
 
     type: MessageType = Field(..., description="The type of the message")
     status: MessageStatus = Field(MessageStatus.PENDING, description="The status of the message")
-    priority: Priority = Field(Priority.NORMAL, description="The priority of the message")
+    priority: Priority = Field(Priority.UKNOWN, description="The priority of the message")
     
     topic: str = Field(..., description="The topic of the message")
     payload: Dict[str, Any] = Field(..., description="The payload of the message")
@@ -43,11 +43,11 @@ class Message(BaseMessage):
         cls,
         sender: str,
         type: MessageType,
+        priority: Priority,
         payload: Dict[str, Any],
         recipient: Optional[str] = None,
         correlation_ids: Optional[List[str]] = None,
         reply_to: Optional[str] = None,
-        priority: Priority = Priority.NORMAL,
         id: Optional[str] = None,
     ) -> "Message":
         """Create a new message with optional parameters.
