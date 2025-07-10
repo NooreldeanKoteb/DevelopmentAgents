@@ -82,17 +82,28 @@ async def print_project_plan(response):
                 print("\nTasks:")
                 for task in phase["tasks"]:
                     print("\n  📌 Task Details:")
+                    print(f"    ID: {task.get('id', 'Not specified')}")
                     print(f"    Name: {task['name']}")
-                    print(f"    Description: {task['description']}")
+                    print(f"    Agent: {task['assigned_to']}")
                     print(f"    Priority: {task['priority']}")
                     print(f"    Critical: {task.get('critical', 'Not specified')}")
                     print(f"    Risk Level: {task.get('risk_level', 'Not specified')}")
                     print(f"    Dependencies: {', '.join(task['dependencies']) if task['dependencies'] else 'None'}")
-                    print(f"    Implementation Steps: {', '.join(task['implementation_steps'])}")
-                    print(f"    Completion Criteria: {', '.join(task['completion_criteria'])}")
-                    print(f"    Research Required: {task['research_required']}")
-                    print(f"    Required Specializations: {', '.join(task['required_specializations'])}")
-                    print(f"    Requirements: {task['requirements']}")
+                    print(f"    Implementation Steps:")
+                    for step in task['implementation_steps']:
+                        print(f"      • {step}")
+                    print(f"    Expected Outputs:")
+                    for output in task.get('expected_outputs', []):
+                        print(f"      • {output}")
+                    print(f"    Completion Criteria:")
+                    for criterion in task.get('completion_criteria', []):
+                        print(f"      • {criterion}")
+                    print(f"    Research Required: {task.get('research_required', False)}")
+                    # print(f"    Required Specializations: {', '.join(task.get('required_specializations', []))}")
+                    if 'requirements' in task:
+                        print(f"    Requirements:")
+                        for key, value in task['requirements'].items():
+                            print(f"      • {key}: {value}")
 
     # Print dependencies
     if "dependencies" in plan:

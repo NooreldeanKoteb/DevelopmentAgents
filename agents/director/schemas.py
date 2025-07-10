@@ -86,6 +86,7 @@ class TaskSchema(BaseDirectorSchema, DescriptiveSchema, MetadataSchema, Timestam
     phase: Optional[str] = Field(default=None, description="Current phase of the task")
     requirements: Dict = Field(default_factory=dict, description="Task requirements")
     implementation_steps: List[str] = Field(default=None, description="Implementation steps")
+    expected_outputs: List[str] = Field(default_factory=list, description="Expected outputs")
     completion_criteria: List[str] = Field(default_factory=list, description="Completion criteria")
     business_impact: Optional[BusinessImpact] = Field(default=None, description="Business impact of the task")
 
@@ -93,7 +94,7 @@ class TaskSchema(BaseDirectorSchema, DescriptiveSchema, MetadataSchema, Timestam
     agent_request: AgentTaskRequestSchema = Field(..., description="AI request for the task")
     status: Status = Field(default=Status.PENDING, description="Current status of the task")
     priority: Priority = Field(..., description="Priority level of the task")
-    required_specializations: List[str] = Field(default_factory=list, description="Required specializations for the task")
+    # required_specializations: List[str] = Field(default_factory=list, description="Required specializations for the task")
 
     parent_task: Optional[str] = Field(default=None, description="Parent task ID")
     sub_tasks: List["TaskSchema"] = Field(default_factory=list, description="Sub tasks required to complete this task")
